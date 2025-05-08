@@ -1,6 +1,15 @@
 ﻿@inherits LayoutComponentBase
 
-<p>Website header/logo</p>
+<!-- temporary until theme detection is written -->
+<HeadContent>
+<script>
+setInterval(() => { document.documentElement.setAttribute("class", "theme-light"); }, 500);
+</script>
+</HeadContent>
+
+<header class="site-header">
+    <p>Website header/logo</p>
+</header>
 
 @Body
 
