@@ -1,0 +1,26 @@
+@rendermode InteractiveServer
+
+<div style="padding: 30px; color: var(--color-foreground); background-color: var(--color-background);">
+    <h1>Title Text Typeface</h1>
+    <p>Here is some text in the standard body text typeface.</p>
+    <p class=font-small>Over here is some more text, this time in the small body text typeface.</p>
+
+    <div class=subtle-container>
+        <p>This text is inside a subtle container, like the border around a post.</p>
+        <input type=text class=input-single-line />
+        <textarea class=input-multi-line rows=3 />
+        <button class="button-suggested-action">Suggested action button</button>
+        <button class="button-optional-action">Optional action button</button>
+        <button class="button-destructive-action">Destructive action button</button>
+        <div class=round-button-container>
+            <button class=round-button><div class="icon-mask" style='mask-image: url("/icon/bx-like.svg");'></div>Like</button>
+            <button class=round-button><div class="icon-mask" style='mask-image: url("/icon/bx-share-alt.svg");'></div>Share</button>
+            <button class=round-button><div class="icon-mask" style='mask-image: url("/icon/bx-reply.svg");'></div>Reply</button>
+        </div>
+        <div class=round-button-container>
+            <button class=round-button><div class="icon-mask active-round-button" style='mask-image: url("/icon/bxs-like.svg");'></div>Like</button>
+            <button class=round-button><div class="icon-mask active-round-button" style='mask-image: url("/icon/bxs-share-alt.svg");'></div>Share</button>
+            <button class=round-button><div class="icon-mask" style='mask-image: url("/icon/bx-reply.svg");'></div>Reply</button>
+        </div>
+    </div>
+</div>
