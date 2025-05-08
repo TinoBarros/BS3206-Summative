@@ -1,6 +1,6 @@
 /* styles for all pages go in this file */
 /* css variables */
-html {
+.outer-container {
   --font-size-title: 24px;
   --font-size-body: 18px;
   --font-size-small: 16px;
@@ -16,7 +16,7 @@ html {
 
 /* theme definitions */
 /* apply themes based on system/browser preferences */
-html {
+.outer-container {
   --color-background: #eee;
   --color-foreground: #111;
   --color-subtle-border: #ccc;
@@ -40,7 +40,7 @@ html {
 }
 
 @media (prefers-color-scheme: dark) {
-  html {
+  .outer-container {
     --color-background: #eee;
     --color-foreground: #111;
     --color-subtle-border: #ccc;
@@ -72,7 +72,7 @@ html {
   }
 }
 @media (prefers-contrast: more) {
-  html {
+  .outer-container {
     --color-background: #eee;
     --color-foreground: #111;
     --color-subtle-border: #ccc;
@@ -111,7 +111,7 @@ html {
   }
 }
 @media (prefers-contrast: more) and (prefers-color-scheme: dark) {
-  html {
+  .outer-container {
     --color-background: #eee;
     --color-foreground: #111;
     --color-subtle-border: #ccc;
@@ -354,7 +354,19 @@ html {
   margin: 0;
 }
 
-body {
+html,
+body,
+.outer-container {
+  width: 100%;
+  height: 100%;
+}
+
+.outer-container {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
+.content-container {
   /* center layout on larger screens*/
   margin: 0 auto;
   padding: 0 var(--border-padding);
@@ -363,8 +375,6 @@ body {
   font-family: system-ui, sans-serif;
   font-size: var(--font-size-body);
   line-height: 1.5;
-  background-color: var(--color-background);
-  color: var(--color-foreground);
   display: flex;
   flex-direction: column;
   gap: var(--flex-gap);

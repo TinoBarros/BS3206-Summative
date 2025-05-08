@@ -1,20 +1,23 @@
 ﻿@inherits LayoutComponentBase
 
-<!-- temporary until theme detection is written -->
-<HeadContent>
-<script>
-setInterval(() => { document.documentElement.setAttribute("class", "theme-light"); }, 500);
-</script>
-</HeadContent>
+<div class="outer-container theme-light">
+    <div class="content-container">
+        <header class="site-header">
+            <p>Website header/logo</p>
+        </header>
 
-<header class="site-header">
-    <p>Website header/logo</p>
-</header>
-
-@Body
+        <CascadingValue value="session">
+            @Body
+        </CascadingValue>
+    </div>
+</div>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private Session session = new Session();
+}
