@@ -1,20 +1,243 @@
 ﻿@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ILogger<MainLayout> Logger
 
-<!-- temporary until theme detection is written -->
-<HeadContent>
-<script>
-setInterval(() => { document.documentElement.setAttribute("class", "theme-light"); }, 500);
-</script>
-</HeadContent>
+<div class="app-container">
+    <div class="app-layout">
+        @{
+            var currentUrl = NavigationManager.Uri.ToLower();
+            var isAuthPage = currentUrl.Contains("/login") || currentUrl.Contains("/register");
+        }
 
-<header class="site-header">
-    <p>Website header/logo</p>
-</header>
-
-@Body
+        @if (isAuthPage)
+        {
+            <main class="auth-content">
+                @Body
+            </main>
+        }
+        else
+        {
+            <AuthorizeView>
+                <Authorized>
+                    <div class="sidebar-wrapper">
+                        <div class="sidebar-container">
+                            <nav class="side-nav">
+                                <div class="logo-container">
+                                    <h2 class="app-title">HealthApp</h2>
+                                </div>
+                                
+                                <div class="nav-links">
+                                    <a href="/feed" class="nav-item @GetActiveClass("/feed")">
+                                        <span class="nav-icon">🏠</span>
+                                        Feed
+                                    </a>
+                                    <a href="/locations" class="nav-item @GetActiveClass("/locations")">
+                                        <span class="nav-icon">📍</span>
+                                        Locations
+                                    </a>
+                                    <a href="/following" class="nav-item @GetActiveClass("/following")">
+                                        <span class="nav-icon">👥</span>
+                                        Following
+                                    </a>
+                                    <a href="/account" class="nav-item @GetActiveClass("/account")">
+                                        <span class="nav-icon">👤</span>
+                                        Profile
+                                    </a>
+                                    <a href="/settings" class="nav-item @GetActiveClass("/settings")">
+                                        <span class="nav-icon">⚙️</span>
+                                        Settings
+                                    </a>
+                                </div>
+                                
+                                <div class="nav-footer">
+                                    <form method="post" action="/api/auth/logout" id="logoutForm">
+                                        <button type="submit" class="nav-item logout-button">
+                                            <span class="nav-icon">🚪</span>
+                                            Logout
+                                        </button>
+                                    </form>
+                                </div>
+                            </nav>
+                        </div>
+                    </div>
+                    
+                    <main class="main-content">
+                        @Body
+                    </main>
+                </Authorized>
+                <NotAuthorized>
+                    <main class="auth-content">
+                        @Body
+                    </main>
+                </NotAuthorized>
+            </AuthorizeView>
+        }
+    </div>
+</div>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
     <span class="dismiss">🗙</span>
 </div>
+
+@code {
+    private string GetActiveClass(string path)
+    {
+        var currentPath = NavigationManager.Uri.ToLower();
+        return currentPath.EndsWith(path.ToLower()) ? "active" : "";
+    }
+}
+
+<style>
+    .app-container {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        min-height: 100vh;
+        background-color: #333;
+    }
+    
+    .app-layout {
+        display: flex;
+        min-height: 100vh;
+        width: 100%;
+        max-width: 1200px;
+        position: relative;
+    }
+
+    .sidebar-wrapper {
+        width: 220px;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-450px);
+        background-color: #f5f9fe;
+        display: flex;
+        justify-content: center;
+        border-right: 1px solid #e0e8f5;
+        z-index: 10;
+    }
+    
+    .sidebar-container {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+    }
+    
+    .side-nav {
+        width: 100%;
+        max-width: 180px;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        height: 100%;
+        overflow-y: auto;
+        padding: 0 10px;
+    }
+    
+    .logo-container {
+        padding: 20px 0;
+        border-bottom: 1px solid #e0e8f5;
+        text-align: center;
+    }
+    
+    .app-title {
+        color: #4a8fe7;
+        margin: 0;
+        font-size: 1.5rem;
+    }
+    
+    .nav-links {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 0;
+    }
+    
+    .nav-item {
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        color: #333;
+        text-decoration: none;
+        gap: 12px;
+        font-size: 1rem;
+        transition: background-color 0.2s;
+        border-radius: 8px;
+        margin: 4px 0;
+    }
+    
+    .nav-item:hover {
+        background-color: rgba(74, 143, 231, 0.1);
+    }
+    
+    .nav-item.active {
+        background-color: rgba(74, 143, 231, 0.15);
+        color: #4a8fe7;
+        font-weight: 500;
+    }
+    
+    .nav-icon {
+        font-size: 1.2rem;
+        width: 24px;
+        text-align: center;
+    }
+    
+    .nav-footer {
+        padding: 20px 0;
+        border-top: 1px solid #e0e8f5;
+    }
+    
+    .nav-footer form {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+    }
+    
+    .logout-button {
+        width: 100%;
+        border: none;
+        background: none;
+        cursor: pointer;
+        text-align: left;
+        font-size: 1rem;
+        color: #e74c3c;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 20px;
+        border-radius: 8px;
+    }
+    
+    .logout-button:hover {
+        background-color: rgba(231, 76, 60, 0.1);
+    }
+    
+    .main-content {
+        flex: 1;
+        padding: 0;
+        margin-left: 220px;
+        width: calc(100% - 220px);
+        display: flex;
+        flex-direction: column;
+        background-color: #333;
+        color: white;
+        min-height: 100vh;
+        position: relative;
+        left: 50%;
+        transform: translateX(-450px);
+    }
+    
+    .auth-content {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        background-color: #333;
+        color: white;
+    }
+</style>
