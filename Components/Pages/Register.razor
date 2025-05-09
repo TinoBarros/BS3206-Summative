@@ -1,0 +1,220 @@
+@page "/register"
+@inject Data.AuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ILogger<Register> Logger
+@rendermode InteractiveServer
+
+<PageTitle>Register</PageTitle>
+
+<div class="auth-container">
+    <h3>Register</h3>
+    
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="error-message">@errorMessage</div>
+    }
+
+    <form @onsubmit:preventDefault @onsubmit="HandleRegister">
+        <div class="form-field">
+            <label>Name</label>
+            <input type="text" class="input-field" @bind="name" @bind:event="oninput" required />
+            @if (!string.IsNullOrEmpty(nameError))
+            {
+                <div class="field-error">@nameError</div>
+            }
+        </div>
+        
+        <div class="form-field">
+            <label>Email</label>
+            <input type="email" class="input-field" @bind="email" @bind:event="oninput" required />
+            @if (!string.IsNullOrEmpty(emailError))
+            {
+                <div class="field-error">@emailError</div>
+            }
+        </div>
+        
+        <div class="form-field">
+            <label>Password</label>
+            <input type="password" class="input-field" @bind="password" @bind:event="oninput" required />
+            @if (!string.IsNullOrEmpty(passwordError))
+            {
+                <div class="field-error">@passwordError</div>
+            }
+        </div>
+        
+        <button type="submit" class="submit-button">Register</button>
+    </form>
+
+    <div class="auth-footer">
+        <a href="/login">Already have an account? Login here</a>
+    </div>
+</div>
+
+<style>
+    .auth-container {
+        background-color: #333;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        color: white;
+        max-width: 400px;
+        margin: 40px auto;
+        padding: 30px;
+    }
+    
+    h3 {
+        text-align: center;
+        margin-bottom: 24px;
+        font-size: 24px;
+        font-weight: 500;
+    }
+    
+    .error-message {
+        color: var(--color-error-foreground);
+        margin-bottom: 10px;
+    }
+    
+    .form-field {
+        margin-bottom: 16px;
+    }
+    
+    .field-error {
+        color: var(--color-error-foreground);
+        font-size: 0.875em;
+        margin-top: 4px;
+    }
+    
+    label {
+        display: block;
+        font-size: 1rem;
+        margin-bottom: 8px;
+        color: #f0f0f0;
+    }
+    
+    .input-field {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 15px;
+        font-size: 16px;
+        background-color: rgba(255, 255, 255, 0.07);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 6px;
+        transition: border-color 0.2s;
+    }
+    
+    .input-field:focus {
+        outline: none;
+        border-color: #4a8fe7;
+    }
+    
+    .submit-button {
+        background-color: #4a8fe7;
+        color: white;
+        border: none;
+        padding: 15px 16px;
+        border-radius: 6px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        width: 100%;
+        margin-top: 10px;
+    }
+    
+    .submit-button:hover {
+        background-color: #3a7bcf;
+    }
+    
+    .auth-footer {
+        text-align: center;
+        margin-top: 18px;
+    }
+    
+    .auth-footer a {
+        color: #fff;
+        text-decoration: none;
+    }
+    
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+</style>
+
+@code {
+    private string name = string.Empty;
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private string? errorMessage;
+    private string? nameError;
+    private string? emailError;
+    private string? passwordError;
+
+    private bool ValidateForm()
+    {
+        bool isValid = true;
+        nameError = null;
+        emailError = null;
+        passwordError = null;
+        errorMessage = null;
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            nameError = "Name is required";
+            isValid = false;
+        }
+
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            emailError = "Email is required";
+            isValid = false;
+        }
+        else if (!email.Contains("@") || !email.Contains("."))
+        {
+            emailError = "Please enter a valid email address";
+            isValid = false;
+        }
+
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            passwordError = "Password is required";
+            isValid = false;
+        }
+        else if (password.Length < 6)
+        {
+            passwordError = "Password must be at least 6 characters long";
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    private async Task HandleRegister()
+    {
+        try
+        {
+            if (!ValidateForm())
+            {
+                return;
+            }
+
+            Logger.LogInformation($"Attempting to register user with email: {email}");
+            var result = await AuthService.RegisterAsync(name, email, password);
+
+            if (result.Success)
+            {
+                Logger.LogInformation("Registration successful, redirecting to login");
+                NavigationManager.NavigateTo("/login");
+            }
+            else
+            {
+                Logger.LogWarning($"Registration failed: {result.Message}");
+                errorMessage = result.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during registration");
+            errorMessage = "An error occurred during registration. Please try again.";
+        }
+    }
+} 

@@ -1,0 +1,126 @@
+@page "/feed"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@attribute [Authorize]
+@inject ILogger<Feed> Logger
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IHttpClientFactory HttpClientFactory
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Feed</PageTitle>
+
+@if (isLoading)
+{
+    <div class="loading-spinner">
+        <p>Loading...</p>
+    </div>
+}
+else
+{
+    <div class="feed-container">
+        <h3>Your Feed</h3>
+        <div class="user-welcome">
+            <p>Welcome, @userName!</p>
+            <p>You have successfully logged in.</p>
+        </div>
+        <!-- Feed content here -->
+    </div>
+}
+
+@code {
+    private bool isLoading = true;
+    private string userName = "Admin";
+    private int authRetryCount = 0;
+    private const int MAX_AUTH_RETRIES = 3;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("Feed page initialized");
+        await CheckAuthenticationStateAsync();
+    }
+
+    private async Task CheckAuthenticationStateAsync()
+    {
+        try 
+        {
+            isLoading = true;
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            
+            if (authState.User.Identity?.IsAuthenticated ?? false)
+            {
+                userName = authState.User.Identity.Name ?? "User";
+                Logger.LogInformation("User authenticated: {UserName}", userName);
+            }
+            else
+            {
+                Logger.LogWarning("User not authenticated, attempt {RetryCount} of {MaxRetries}", 
+                    authRetryCount + 1, MAX_AUTH_RETRIES);
+                
+                if (authRetryCount < MAX_AUTH_RETRIES)
+                {
+                    authRetryCount++;
+                    await Task.Delay(500); // Wait briefly before retrying
+                    await CheckAuthenticationStateAsync();
+                }
+                else
+                {
+                    Logger.LogWarning("Max authentication retries reached, redirecting to login");
+                    RedirectToLogin();
+                }
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void RedirectToLogin()
+    {
+        NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
+    }
+}
+
+<style>
+    .loading-spinner {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        width: 100%;
+    }
+    
+    .unauthorized-message {
+        text-align: center;
+        padding: 40px;
+        max-width: 400px;
+        margin: 100px auto;
+    }
+    
+    .unauthorized-message button {
+        margin-top: 20px;
+    }
+
+    .loading-message {
+        text-align: center;
+        padding: 20px;
+        color: var(--color-foreground-muted);
+    }
+
+    .user-welcome {
+        margin: 20px 0;
+        padding: 15px;
+        background-color: #444;
+        border-radius: 8px;
+    }
+
+    .feed-container {
+        padding: 20px;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+</style> 
