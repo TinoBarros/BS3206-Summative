@@ -1,8 +1,11 @@
 @page "/feed"
+@inject AppDbContext _dbContext
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.EntityFrameworkCore
+@using Data
 @attribute [Authorize]
 @inject ILogger<Feed> Logger
 @inject NavigationManager NavigationManager
@@ -13,35 +16,192 @@
 
 <PageTitle>Feed</PageTitle>
 
-@if (isLoading)
+<button class="create-post-button" @onclick="NavigateToCreatePost">➕ Create Post</button>
+<h1 style="text-align: center;">Following Feed</h1>
+
+@if (ShowToast)
 {
-    <div class="loading-spinner">
-        <p>Loading...</p>
+    <div class="toast">
+        @ToastMessage
     </div>
 }
-else
-{
-    <div class="feed-container">
-        <h3>Your Feed</h3>
-        <div class="user-welcome">
-            <p>Welcome, @userName!</p>
-            <p>You have successfully logged in.</p>
+<div class="feed-container">
+    @if (Posts == null || !Posts.Any())
+    {
+        <div class="no-posts-message">
+            <i class="fas fa-ban" style="font-size: 2rem; color: #ff6347;"></i>
+            <p>No posts yet. Follow users to see their posts!</p>
         </div>
-        <!-- Feed content here -->
+    }
+    else
+    {
+        @foreach (var post in Posts)
+        {
+            <div class="post-box">
+                <div class="post-header">
+                    @if (post.User?.ProfileImage != null)
+                    {
+                    var profileImgBase64 = $"data:image/png;base64,{Convert.ToBase64String(post.User.ProfileImage)}";
+                    <img src="@profileImgBase64" alt="User profile" class="avatar-image" />
+                    }
+                    else
+                    {
+                        <div class="avatar-placeholder"></div>
+                    }
+                    <div>
+                        <strong>@post.User.Name</strong><br />
+                        <span class="timestamp">@post.Timestamp.ToString("MM/dd/yyyy HH:mm")</span>
+                    </div>
+                </div>
+
+                <div class="post-content">
+                    <div class="subject"><strong>@post.Subject</strong></div>
+                    <div class="body">
+                        @post.Description
+                    </div>
+                </div>
+
+                @if (post.Images != null && post.Images.Any())
+                {
+                    foreach (var image in post.Images)
+                    {
+                        var base64 = Convert.ToBase64String(image.ImageData);
+                        var imgSrc = $"data:{image.ContentType};base64,{base64}";
+                        <img src="@imgSrc" alt="Post image" class="post-image" @onclick="() => OpenImageViewer(imgSrc)" />
+                    }
+                }
+
+                <div class="post-actions">
+                    <button class="like-button" @onclick="() => OnLikeButtonClick(post)">
+                        <span class="@((likedPosts.ContainsKey(post.PostId) && likedPosts[post.PostId]) ? "liked" : "not-liked")">
+                            @if (likedPosts.ContainsKey(post.PostId) && likedPosts[post.PostId])
+                            {
+                                <span>👍 @post.Likes.Count</span>
+                            }
+                            else
+                            {
+                                <span>👍 @post.Likes.Count</span>
+                            }
+                        </span>
+                    </button>
+                    <span>💬  @post.Comments</span>
+
+                    @if (IsUserPostOwner(post))
+                    {
+                        <button class="delete-button" @onclick="@(() => DeletePost(post.PostId))">🗑️ Delete</button>
+                    }
+                </div>
+
+                <div class="comment-input">
+                    <input @bind="commentTexts[post.PostId]" placeholder="Add a comment..." />
+                    <button @onclick="@(() => AddComment(post.PostId))">Post Comment</button>
+                </div>
+
+                <div class="comments-section">
+                    <h5>Comments</h5>
+                    @foreach (var comment in _dbContext.Posts.Where(p => p.ParentPostId == post.PostId).Include(p => p.User))
+                    {
+                        <div class="comment">
+                            @if (comment.User.ProfileImage != null)
+                    {
+                    var profileImgBase64 = $"data:image/png;base64,{Convert.ToBase64String(comment.User.ProfileImage)}";
+                    <img src="@profileImgBase64" alt="User profile" class="avatar-image" />
+                    }
+                else
+                {
+                    <div class="avatar-placeholder"></div>
+                }
+                            <div class="comment-body">
+                                <strong>@comment.User.Name</strong><br />
+                                <span class="timestamp">@comment.Timestamp.ToString("MM/dd/yyyy HH:mm")</span>
+                                <div class="comment-text">@comment.Description</div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    }
+</div>
+
+
+
+@if (isImageViewerOpen)
+{
+    <div class="image-viewer-backdrop" @onclick="CloseImageViewer">
+        <div class="image-viewer-content" @onclick:stopPropagation>
+            <img src="@currentImageSrc" alt="Full view" />
+            <button class="close-button" @onclick="CloseImageViewer">✕</button>
+        </div>
     </div>
 }
 
 @code {
     private bool isLoading = true;
-    private string userName = "Admin";
     private int authRetryCount = 0;
     private const int MAX_AUTH_RETRIES = 3;
+    private bool isImageViewerOpen = false;
+    private string currentImageSrc = string.Empty;
+    private string newCommentText = string.Empty;
+    private List<Data.Post> Posts { get; set; } = new List<Data.Post>();
+    
+    private Dictionary<int, string> commentTexts = new();
+    private Dictionary<int, bool> likedPosts = new Dictionary<int, bool>();
+
+    private bool ShowToast { get; set; } = false;
+    private string ToastMessage { get; set; } = "";
+
+    private async Task ShowToastMessage(string message)
+    {
+        ToastMessage = message;
+        ShowToast = true;
+        StateHasChanged();
+        await Task.Delay(3000);
+        ShowToast = false;
+        StateHasChanged();
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        Logger.LogInformation("Feed page initialized");
-        await CheckAuthenticationStateAsync();
+        Posts = await _dbContext.Posts
+            .Where(p => p.ParentPostId == null)
+            .Include(p => p.User)
+            .Include(p => p.Images)
+            .Include(p => p.Likes)
+            .OrderByDescending(p => p.Timestamp)
+            .ToListAsync();
+
+        foreach (var post in Posts)
+        {
+            if (!commentTexts.ContainsKey(post.PostId))
+            {
+                commentTexts[post.PostId] = string.Empty;
+            }
+        }
     }
+
+    private void NavigateToCreatePost()
+    {
+        NavigationManager.NavigateTo("/create-post");
+    }
+
+        private async Task DeletePost(int postId)
+{
+    var postToDelete = await _dbContext.Posts.FindAsync(postId);
+    if (postToDelete != null)
+    {
+        _dbContext.Posts.Remove(postToDelete);
+        await _dbContext.SaveChangesAsync();
+    }
+}
+
+      private bool IsUserPostOwner(Data.Post post)
+    {
+        var authState = AuthStateProvider.GetAuthenticationStateAsync().Result;
+        var currentUserEmail = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        return post.User?.Email == currentUserEmail;
+    }
+
 
     private async Task CheckAuthenticationStateAsync()
     {
@@ -52,8 +212,8 @@ else
             
             if (authState.User.Identity?.IsAuthenticated ?? false)
             {
-                userName = authState.User.Identity.Name ?? "User";
-                Logger.LogInformation("User authenticated: {UserName}", userName);
+                string currentUser = authState.User.Identity.Name ?? "User";
+                Logger.LogInformation("User authenticated: {currentUser}", currentUser);
             }
             else
             {
@@ -83,7 +243,134 @@ else
     {
         NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
     }
+
+    private void OpenImageViewer(string imgSrc)
+    {
+        currentImageSrc = imgSrc;
+        isImageViewerOpen = true;
+    }
+
+    private void CloseImageViewer()
+    {
+        isImageViewerOpen = false;
+        currentImageSrc = string.Empty;
+    }
+
+    private async Task AddComment(int parentPostId)
+    {
+        if (!commentTexts.ContainsKey(parentPostId) || string.IsNullOrWhiteSpace(commentTexts[parentPostId]))
+            {
+                await ShowToastMessage("Comment Cannot Be empty.");
+                return;
+            }
+        try
+        {
+
+            
+
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var userClaims = authState.User;
+
+            if (!userClaims.Identity?.IsAuthenticated ?? true)
+            {
+                RedirectToLogin();
+                return;
+            }
+
+            var email = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+            {
+                await ShowToastMessage("Invalid user email.");
+                RedirectToLogin();
+                return;
+            }
+
+            var currentUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (currentUser == null)
+            {
+                await ShowToastMessage("User not found.");
+                RedirectToLogin();
+                return;
+            }
+
+            var parentPost = await _dbContext.Posts.FindAsync(parentPostId);
+            if (parentPost == null)
+            {
+                await ShowToastMessage("Parent post not found.");
+                return;
+            }
+
+
+            var comment = new Data.Post
+            {
+                User = currentUser,
+                UserId = currentUser.Id,
+                Subject = "Re: " + parentPost.Subject,
+                Description = commentTexts[parentPostId],
+                Timestamp = DateTime.UtcNow,
+                ParentPostId = parentPostId,
+                Comments = 0
+            };
+
+            _dbContext.Posts.Add(comment);
+            parentPost.Comments++;
+            await _dbContext.SaveChangesAsync();
+
+            commentTexts[parentPostId] = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error adding comment.");
+            await ShowToastMessage("Failed to post comment.");
+        }
+    }
+
+    private async Task OnLikeButtonClick(Data.Post post)
+    
+{
+    var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+    var email = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+    var currentUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+    if (currentUser == null)
+    {
+        RedirectToLogin();
+        return;
+    }
+
+    var existingLike = await _dbContext.Likes
+        .FirstOrDefaultAsync(l => l.PostId == post.PostId && l.UserId == currentUser.Id);
+
+    if (existingLike != null)
+    {
+        _dbContext.Likes.Remove(existingLike);
+        likedPosts[post.PostId] = false;
+    }
+    else
+    {
+        var like = new Data.Like
+        {
+            PostId = post.PostId,
+            UserId = currentUser.Id
+        };
+        _dbContext.Likes.Add(like);
+        likedPosts[post.PostId] = true;
+    }
+
+    await _dbContext.SaveChangesAsync();
+
+    // Refresh likes count
+    var updatedPost = await _dbContext.Posts
+        .Include(p => p.Likes)
+        .FirstOrDefaultAsync(p => p.PostId == post.PostId);
+
+    if (updatedPost != null)
+    {
+        post.Likes = updatedPost.Likes;
+    }
 }
+}
+
 
 <style>
     .loading-spinner {
@@ -118,9 +405,235 @@ else
         border-radius: 8px;
     }
 
-    .feed-container {
-        padding: 20px;
-        max-width: 800px;
-        margin: 0 auto;
-    }
+    /* General Reset */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+/* Feed Page Styling */
+.feed-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    width: 100%;
+    
+}
+
+.post-box {
+    background: #444;
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    transition: box-shadow 0.2s ease;
+}
+
+.post-box:hover {
+    box-shadow: 0 6px 12px rgba(0,0,0,0.08);
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.avatar-placeholder {
+    width: 50px;
+    height: 50px;
+    background-color: #ccc;
+    border-radius: 50%;
+}
+.avatar-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.timestamp {
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.post-content .subject {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.post-content .body {
+    font-size: 1rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    margin-bottom: 1rem;
+}
+
+.post-image {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-top: 1rem;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.post-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
+
+.like-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    
+}
+
+.like-button .not-liked {
+    color: white;
+}
+
+.like-button .liked {
+    color: #e74c3c;
+}
+
+.comment-input {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+
+.comment-input input {
+    flex: 1;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+}
+
+.comment-input button {
+    color: white;
+    padding: 0.5rem 1rem;
+    background-color: #2c3e50;
+    
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.comment-input button:hover {
+    background-color: #34495e;
+}
+
+.comments-section {
+    background-color: #555;
+    margin-top: 1rem;
+    padding-left: 1rem;
+    border-left: 2px solid #f0f0f0;
+}
+
+.comment {
+    display: flex;
+    margin-top: 0.5rem;
+}
+
+.comment-avatar {
+    width: 10px;
+    height: 10px;
+    background-color: #bbb;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+}
+
+.comment-body {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    width: 100%;
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+        top: 2rem;
+        right: 2rem;
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        color: white;
+        font-weight: bold;
+        z-index: 100;
+        background-color: #e74c3c;
+}
+/* Image Viewer Styles */
+.image-viewer-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent black */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Ensure it is on top */
+}
+
+.image-viewer-content {
+    position: relative;
+    max-width: 90%; /* Scale down image for better view */
+    max-height: 90%; /* Prevent the image from overflowing the screen */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.image-viewer-content img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Keep the aspect ratio */
+}
+
+.close-button {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+.delete-button { 
+    color: white;
+    padding: 0.5rem 1rem;
+    background-color: #2c3e50;
+    
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-left: auto;
+}
+.create-post-button {
+    padding: 0.5rem 1.5rem;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 1rem;
+        background-color: #2c3e50;
+        color: white; /* Ensure it appears above other content */
+}
+
+.create-post-button:hover {
+    background-color: #34495e; /* Darker shade when hovering */
+}
+
 </style> 
