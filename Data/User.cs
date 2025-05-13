@@ -14,5 +14,6 @@ namespace Data {
         public byte[]? ProfileImage { get; set; }
         public string? Location { get; set; }
         public string? Bio { get; set; }
+        public bool IsAdmin { get; set; }
     }
 } 

@@ -1,32 +1,438 @@
 @page "/locations"
 @using Microsoft.EntityFrameworkCore
+@using Data
 @inject Data.AppDbContext DbContext
 @inject NavigationManager NavigationManager
+@inject IWebHostEnvironment Environment
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 <PageTitle>Locations</PageTitle>
 
 <div class="locations-container">
-    <h1>Locations</h1>
-    <div class="locations-content">
-        <div class="search-bar">
-            <input type="text" placeholder="Search locations..." class="search-input" />
-            <button class="search-button">Search</button>
-        </div>
-        <div class="locations-grid">
-            <div class="location-card">
-                <div class="location-image">
-                    <img src="https://via.placeholder.com/300x200" alt="Location" />
+    <div class="locations-header">
+        <h1>Locations</h1>
+        <button @onclick="() => showAddModal = true" class="add-location-button">
+            <span class="button-icon">+</span>
+            Add New Location
+        </button>
+    </div>
+    
+    <div class="map-container">
+        <div id="map"></div>
+    </div>
+
+    @if (showAddModal)
+    {
+        <div class="modal-overlay" @onclick="CloseModal">
+            <div class="modal-content" @onclick:stopPropagation="true">
+                <div class="modal-header">
+                    <h2>Add New Location</h2>
+                    <button @onclick="CloseModal" class="close-button">&times;</button>
                 </div>
-                <div class="location-info">
-                    <h3>Location Name</h3>
-                    <p>Short description of the location and its features.</p>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <input @bind="newLocation.Name" placeholder="Location Name" class="form-input" />
+                        <textarea @bind="newLocation.Description" placeholder="Location Description" class="form-input"></textarea>
+                        <div class="image-input-container">
+                            <div class="image-input-option">
+                                <input @bind="newLocation.ImageUrl" placeholder="Image URL" class="form-input" />
+                                <span class="image-input-label">OR</span>
+                            </div>
+                            <div class="image-upload-container">
+                                <InputFile OnChange="HandleFileSelected" class="image-upload-input" />
+                                @if (selectedFile != null)
+                                {
+                                    <div class="selected-file">
+                                        <span>Selected: @selectedFile.Name</span>
+                                        <button @onclick="ClearSelectedFile" class="clear-file-button">×</button>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <input @bind="newLocation.MapUrl" placeholder="Google Maps URL (optional)" class="form-input" />
+                        <button @onclick="AddLocation" class="add-button">Add Location</button>
+                    </div>
                 </div>
             </div>
-            <!-- Add more location cards as needed -->
+        </div>
+    }
+
+    <div class="locations-content">
+        <div class="locations-header">
+            <div class="search-bar">
+                <input type="text" @bind="searchTerm" placeholder="Search locations..." class="search-input" />
+                <button @onclick="SearchLocations" class="search-button">Search</button>
+            </div>
+            <div class="sort-options">
+                <select @bind="sortOrder" class="sort-select">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="mostLiked">Most Liked</option>
+                    <option value="leastLiked">Least Liked</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="locations-list">
+            @if (locations == null)
+            {
+                <p>Loading...</p>
+            }
+            else if (!locations.Any())
+            {
+                <p>No locations found.</p>
+            }
+            else
+            {
+                @foreach (var location in locations)
+                {
+                    <div class="location-card">
+                        <div class="location-image">
+                            <img src="@location.ImageUrl" alt="@location.Name" />
+                        </div>
+                        <div class="location-info">
+                            <div class="location-header">
+                                <h3>@location.Name</h3>
+                                @if (currentUser != null && currentUser.IsAdmin)
+                                {
+                                    <button @onclick="() => DeleteLocation(location)" class="delete-button" title="Delete location">
+                                        🗑️
+                                    </button>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(location.MapUrl))
+                                {
+                                    <button class="map-button" @onclick="() => OpenMap(location.MapUrl)">Map</button>
+                                }
+                            </div>
+                            <p>@location.Description</p>
+                            <div class="location-stats">
+                                <div class="thumbs-container">
+                                    <button @onclick="() => ThumbsUp(location)" class="thumbs-button" :class="{ active: userLikes.ContainsKey(location.Id) && userLikes[location.Id] }">
+                                        <span class="thumbs-icon">👍</span>
+                                        <span class="thumbs-count">@location.ThumbsUp</span>
+                                    </button>
+                                    <button @onclick="() => ThumbsDown(location)" class="thumbs-button" :class="{ active: userDislikes.ContainsKey(location.Id) && userDislikes[location.Id] }">
+                                        <span class="thumbs-icon">👎</span>
+                                        <span class="thumbs-count">@location.ThumbsDown</span>
+                                    </button>
+                                </div>
+                                <span class="location-date">@location.CreatedAt.ToString("MMM dd, yyyy")</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
         </div>
     </div>
 </div>
+
+@code {
+    // Location data and UI state
+    private List<Data.Location>? locations;
+    private Data.Location newLocation = new() { Name = "" };
+    private string searchTerm = "";
+    private string sortOrder = "newest";
+    private IBrowserFile? selectedFile;
+    private const long MaxFileSize = 5 * 1024 * 1024; // 5MB - can be changed if needed
+    private readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
+    private DotNetObjectReference<Locations>? objRef;
+    private Dictionary<int, bool> userLikes = new();
+    private Dictionary<int, bool> userDislikes = new();
+    private Data.User? currentUser;
+    private bool showAddModal = false;
+
+    // Initialise component and load user data
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var email = user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            if (!string.IsNullOrEmpty(email))
+            {
+                currentUser = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+            }
+        }
+        await LoadLocations();
+    }
+
+    // Initialise map after component renders
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            objRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("initMap", objRef);
+        }
+    }
+
+    // Handle map click events from JavaScript
+    [JSInvokable]
+    public async Task OnMapClick(double lat, double lng)
+    {
+        await Task.CompletedTask;
+    }
+
+    // Clean up map reference when component is disposed
+    public void Dispose()
+    {
+        objRef?.Dispose();
+    }
+
+    // Load locations and user interactions from database
+    private async Task LoadLocations()
+    {
+        locations = await DbContext.Locations.ToListAsync();
+        
+        if (currentUser != null)
+        {
+            var interactions = await DbContext.LocationInteractions
+                .Where(li => li.UserId == currentUser.Id)
+                .ToListAsync();
+
+            foreach (var interaction in interactions)
+            {
+                userLikes[interaction.LocationId] = interaction.IsLiked;
+                userDislikes[interaction.LocationId] = interaction.IsDisliked;
+            }
+        }
+        
+        SortLocations();
+    }
+
+    // Handle file selection for location images
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        if (file.Size > MaxFileSize)
+        {
+            return;
+        }
+
+        var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+        if (!AllowedExtensions.Contains(extension))
+        {
+            return;
+        }
+
+        selectedFile = file;
+    }
+
+    // Clear selected file
+    private void ClearSelectedFile()
+    {
+        selectedFile = null;
+    }
+
+    // Close add location modal and reset form
+    private void CloseModal()
+    {
+        showAddModal = false;
+        newLocation = new() { Name = "" };
+        selectedFile = null;
+    }
+
+    // Add new location with image upload
+    private async Task AddLocation()
+    {
+        if (string.IsNullOrWhiteSpace(newLocation.Name))
+            return;
+
+        if (selectedFile != null)
+        {
+            var uploadsFolder = Path.Combine(Environment.WebRootPath, "uploads");
+            if (!Directory.Exists(uploadsFolder))
+            {
+                Directory.CreateDirectory(uploadsFolder);
+            }
+
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(selectedFile.Name)}";
+            var filePath = Path.Combine(uploadsFolder, fileName);
+
+            using (var stream = File.Create(filePath))
+            {
+                await selectedFile.OpenReadStream(MaxFileSize).CopyToAsync(stream);
+            }
+
+            newLocation.ImageUrl = $"/uploads/{fileName}";
+        }
+
+        DbContext.Locations.Add(newLocation);
+        await DbContext.SaveChangesAsync();
+        CloseModal();
+        await LoadLocations();
+    }
+
+    // Delete location and associated image file
+    private async Task DeleteLocation(Data.Location location)
+    {
+        // Only allow admins to delete locations
+        if (currentUser == null || !currentUser.IsAdmin)
+        {
+            // Optionally, show a message or log unauthorized attempt
+            return;
+        }
+        // Delete the image file if it's an uploaded file
+        if (!string.IsNullOrEmpty(location.ImageUrl) && location.ImageUrl.StartsWith("/uploads/"))
+        {
+            var filePath = Path.Combine(Environment.WebRootPath, location.ImageUrl.TrimStart('/'));
+            if (File.Exists(filePath))
+            {
+                File.Delete(filePath);
+            }
+        }
+        DbContext.Locations.Remove(location);
+        await DbContext.SaveChangesAsync();
+        await LoadLocations();
+    }
+
+    // Handle thumbs up interaction
+    private async Task ThumbsUp(Data.Location location)
+    {
+        if (currentUser == null)
+        {
+            // Handle unauthenticated user
+            return;
+        }
+
+        var interaction = await DbContext.LocationInteractions
+            .FirstOrDefaultAsync(li => li.UserId == currentUser.Id && li.LocationId == location.Id);
+
+        if (interaction == null)
+        {
+            // Create new interaction
+            interaction = new LocationInteraction
+            {
+                UserId = currentUser.Id,
+                LocationId = location.Id,
+                IsLiked = true,
+                IsDisliked = false
+            };
+            DbContext.LocationInteractions.Add(interaction);
+            location.ThumbsUp++;
+        }
+        else
+        {
+            if (interaction.IsLiked)
+            {
+                // Remove like
+                interaction.IsLiked = false;
+                location.ThumbsUp--;
+            }
+            else
+            {
+                // Add like and remove dislike if exists
+                interaction.IsLiked = true;
+                interaction.IsDisliked = false;
+                location.ThumbsUp++;
+                if (interaction.IsDisliked)
+                {
+                    location.ThumbsDown--;
+                }
+            }
+        }
+
+        await DbContext.SaveChangesAsync();
+        userLikes[location.Id] = interaction.IsLiked;
+        userDislikes[location.Id] = interaction.IsDisliked;
+        StateHasChanged();
+    }
+
+    // Handle thumbs down interaction
+    private async Task ThumbsDown(Data.Location location)
+    {
+        if (currentUser == null)
+        {
+            return;
+        }
+
+        var interaction = await DbContext.LocationInteractions
+            .FirstOrDefaultAsync(li => li.UserId == currentUser.Id && li.LocationId == location.Id);
+
+        if (interaction == null)
+        {
+            // Create new interaction
+            interaction = new LocationInteraction
+            {
+                UserId = currentUser.Id,
+                LocationId = location.Id,
+                IsLiked = false,
+                IsDisliked = true
+            };
+            DbContext.LocationInteractions.Add(interaction);
+            location.ThumbsDown++;
+        }
+        else
+        {
+            if (interaction.IsDisliked)
+            {
+                // Remove dislike
+                interaction.IsDisliked = false;
+                location.ThumbsDown--;
+            }
+            else
+            {
+                // Add dislike and remove like if it already exists (and vice versa)
+                interaction.IsDisliked = true;
+                interaction.IsLiked = false;
+                location.ThumbsDown++;
+                if (interaction.IsLiked)
+                {
+                    location.ThumbsUp--;
+                }
+            }
+        }
+
+        await DbContext.SaveChangesAsync();
+        userLikes[location.Id] = interaction.IsLiked;
+        userDislikes[location.Id] = interaction.IsDisliked;
+        StateHasChanged();
+    }
+
+    // Sort locations based on selected criteria
+    private void SortLocations()
+    {
+        if (locations == null) return;
+
+        locations = sortOrder switch
+        {
+            "newest" => locations.OrderByDescending(l => l.CreatedAt).ToList(),
+            "oldest" => locations.OrderBy(l => l.CreatedAt).ToList(),
+            "mostLiked" => locations.OrderByDescending(l => l.ThumbsUp).ToList(),
+            "leastLiked" => locations.OrderBy(l => l.ThumbsUp).ToList(),
+            _ => locations
+        };
+    }
+
+    // Filter locations based on search term
+    private void SearchLocations()
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            LoadLocations();
+            return;
+        }
+
+        locations = locations?
+            .Where(l => l.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                       l.Description.Contains(searchTerm, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    // Open location map in new tab
+    private void OpenMap(string url)
+    {
+        if (!string.IsNullOrWhiteSpace(url))
+        {
+            NavigationManager.NavigateTo(url, true, true);
+        }
+    }
+}
 
 <style>
     .locations-container {
@@ -36,11 +442,113 @@
         width: 100%;
     }
 
+    .map-container {
+        width: 100%;
+        height: 400px;
+        margin-bottom: 20px;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+
+    #map {
+        width: 100%;
+        height: 100%;
+    }
+
     .locations-container h1 {
         margin-bottom: 24px;
         font-size: 24px;
         font-weight: 600;
         color: white;
+    }
+
+    .add-location-form {
+        background: #444;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .add-location-form h2 {
+        color: white;
+        margin-bottom: 15px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .form-input {
+        padding: 10px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        font-size: 16px;
+        background-color: #555;
+        color: white;
+    }
+
+    .image-input-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .image-input-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .image-input-label {
+        color: #999;
+        font-size: 14px;
+    }
+
+    .image-upload-container {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .image-upload-input {
+        color: white;
+    }
+
+    .selected-file {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #ccc;
+        font-size: 14px;
+    }
+
+    .clear-file-button {
+        background: none;
+        border: none;
+        color: #ff4444;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 0 5px;
+    }
+
+    .clear-file-button:hover {
+        color: #ff6666;
+    }
+
+    .add-button {
+        padding: 10px 20px;
+        background-color: #4a8fe7;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .add-button:hover {
+        background-color: #3a7fd7;
     }
 
     .locations-content {
@@ -50,10 +558,17 @@
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
 
+    .locations-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
     .search-bar {
         display: flex;
         gap: 10px;
-        margin-bottom: 20px;
+        flex: 1;
     }
 
     .search-input {
@@ -80,11 +595,37 @@
         background-color: #3a7fd7;
     }
 
-    .locations-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-        gap: 20px;
-        margin-top: 20px;
+    .sort-select {
+        padding: 10px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        background-color: #555;
+        color: white;
+        cursor: pointer;
+    }
+
+    .locations-list {
+        max-height: 600px;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+
+    .locations-list::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .locations-list::-webkit-scrollbar-track {
+        background: #555;
+        border-radius: 4px;
+    }
+
+    .locations-list::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+
+    .locations-list::-webkit-scrollbar-thumb:hover {
+        background: #999;
     }
 
     .location-card {
@@ -93,6 +634,7 @@
         overflow: hidden;
         transition: transform 0.2s;
         background-color: #555;
+        margin-bottom: 20px;
     }
 
     .location-card:hover {
@@ -115,15 +657,205 @@
         padding: 15px;
     }
 
-    .location-info h3 {
-        margin: 0 0 10px 0;
+    .location-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .location-header h3 {
+        margin: 0;
         font-size: 18px;
         color: white;
     }
 
+    .delete-button {
+        background: none;
+        border: none;
+        color: #ff4444;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 5px;
+        transition: color 0.2s;
+    }
+
+    .delete-button:hover {
+        color: #ff6666;
+    }
+
     .location-info p {
-        margin: 0;
+        margin: 0 0 15px 0;
         color: #ccc;
         font-size: 14px;
     }
-</style> 
+
+    .location-stats {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .thumbs-container {
+        display: flex;
+        gap: 10px;
+    }
+
+    .thumbs-button {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 10px;
+        background: #666;
+        border: none;
+        border-radius: 4px;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .thumbs-button.active {
+        background: #4a8fe7;
+    }
+
+    .thumbs-button:hover {
+        background: #777;
+    }
+
+    .thumbs-button.active:hover {
+        background: #3a7fd7;
+    }
+
+    .thumbs-icon {
+        font-size: 16px;
+    }
+
+    .thumbs-count {
+        font-size: 14px;
+    }
+
+    .location-date {
+        color: #999;
+        font-size: 12px;
+    }
+
+    .add-location-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background-color: #4a8fe7;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        font-size: 16px;
+    }
+
+    .add-location-button:hover {
+        background-color: #3a7fd7;
+    }
+
+    .button-icon {
+        font-size: 20px;
+        font-weight: bold;
+    }
+
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+    }
+
+    .modal-content {
+        background: #444;
+        border-radius: 8px;
+        padding: 20px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .modal-header h2 {
+        color: white;
+        margin: 0;
+    }
+
+    .close-button {
+        background: none;
+        border: none;
+        color: #999;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+    }
+
+    .close-button:hover {
+        color: white;
+    }
+
+    .modal-body {
+        color: white;
+    }
+
+    .map-button {
+        background: none;
+        border: none;
+        color: #4a8fe7;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 0;
+        margin-left: 10px;
+    }
+
+    .map-button:hover {
+        text-decoration: underline;
+    }
+</style>
+
+<script>
+    let map;
+    let markers = [];
+
+    window.initMap = async (dotNetRef) => {
+        // Load Leaflet CSS
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(link);
+
+        // Load Leaflet JS
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.onload = () => {
+            // Initialise map
+            map = L.map('map').setView([51.505, -0.09], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Add click handler
+            map.on('click', (e) => {
+                dotNetRef.invokeMethodAsync('OnMapClick', e.latlng.lat, e.latlng.lng);
+            });
+        };
+        document.head.appendChild(script);
+    };
+</script> 
