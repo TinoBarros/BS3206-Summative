@@ -29,7 +29,7 @@
 
     <div class="form-group">
         <label for="subject">Subject</label>
-        <input id="subject" type="text" class="form-control" @bind="Subject" />
+        <input id="subject" type="text" class="form-control" @bind="Subject" maxlength="100" />
     </div>
 
     <div class="form-group">
@@ -63,7 +63,7 @@
                     <div class="avatar-placeholder"></div>
                 }
                 <div>
-                    <strong>@loggedInUser.Name</strong><br />
+                    <strong>@loggedInUser?.Name</strong><br />
                     <span class="timestamp">@DateTime.Now.ToString("MM/dd/yyyy HH:mm")</span>
                 </div>
             </div>
@@ -99,31 +99,36 @@
     private bool ShowPreview { get; set; } = false;
     private string Subject { get; set; } = "";
     private string Description { get; set; } = "";
-    
-
     private List<PostImage> tempUploadedImages = new();
+    private bool ShowToast { get; set; } = false;
+    private string ToastMessage { get; set; } = "";
+    private string ToastType { get; set; } = "success";
 
+    //keeps track of character count in subject
     private void UpdateCharacterCount(ChangeEventArgs e)
     {
         Description = e.Value?.ToString() ?? "";
     }
+
+    //toggles whether preview is selected
     private void TogglePreview()
     {
         ShowPreview = !ShowPreview;
     }
+
+    //navigates back to feed page
     private void NavigateBack()
     {
         NavigationManager.NavigateTo("/");
     }
+
+    //closes preview window
      private void ClosePreview()
     {
         ShowPreview = false;
     }
 
-    private bool ShowToast { get; set; } = false;
-    private string ToastMessage { get; set; } = "";
-    private string ToastType { get; set; } = "success";
-
+    //shows toast notification
     private async Task ShowToastMessage(string message, string type = "success")
     {
         ToastMessage = message;
@@ -134,7 +139,7 @@
         StateHasChanged();
     }
     
-
+    //creates post in the database
     private async Task CreatePost()
     {
          if (string.IsNullOrWhiteSpace(Subject) || string.IsNullOrWhiteSpace(Description))
@@ -171,6 +176,7 @@
         await ShowToastMessage("Post successfully published!");
     }
 
+    //creates PostImage
     private async Task HandleImageUpload(InputFileChangeEventArgs e)
     {
        foreach (var file in e.GetMultipleFiles())
@@ -185,7 +191,8 @@
             });
         }
     }
-
+    
+    //loads user data
     protected override async Task OnInitializedAsync()
     {
         await LoadUserData();
@@ -196,7 +203,7 @@
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
             
-            // Get the email from the ClaimTypes.Email claim
+           
             var userEmail = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
             
             if (string.IsNullOrEmpty(userEmail))
@@ -225,189 +232,183 @@
 }
 
 <style>
-    .post-container {
+.post-container {
     background: #444;
-        border-radius: 12px;
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        transition: box-shadow 0.2s ease;
-        max-width: 400px;
-        width: 100%;
-        margin: 0 auto;
-    }
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 400px;
+    width: 100%;
+    margin: 0 auto;
+    margin-bottom: 2rem;
+    transition: box-shadow 0.2s ease;
+}
 
-    h1 {
-        text-align: center;
-        margin-bottom: 1.5rem;
-    }
+h1 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
 
-    .form-group {
-       width: 100%;
-     /* Adjust this to control the width of the form inputs */
+.form-group {
+    width: 100%;
     display: flex;
     flex-direction: column;
-    align-items: flex-start; /* Centers the input fields horizontally */
+    align-items: flex-start;
     margin-bottom: 1.5rem;
-    }
+}
 
-    label {
-        display: block;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-    }
+label {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
 
-    .form-control {
-        width: calc(100% - 20px);
-        width: 100%;
-        padding: 0.75rem;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-        font-size: 1rem;
-        background-color: #555;
-        color: white;
-        box-sizing: border-box;  /* Ensures input does not overflow */
-        margin-right: 20px; 
-    }
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+    background-color: #555;
+    color: white;
+    box-sizing: border-box;
+}
 
-    .form-control::placeholder {
-        color: #aaa;
-    }
+.form-control::placeholder {
+    color: #aaa;
+}
 
-    .char-counter {
-        text-align: right;
-        font-size: 0.9rem;
-        color: #bbb;
-        margin-top: 0.25rem;
-    }
+.char-counter {
+    text-align: right;
+    font-size: 0.9rem;
+    color: #bbb;
+    margin-top: 0.25rem;
+}
 
-    .upload-container {
-        display: flex;
-        align-items: left;
-        gap: 1rem;
-    }
+.upload-container {
+    display: flex;
+    gap: 1rem;
+}
 
-    .btn-preview, .btn-share,.btn-back {
-        padding: 0.5rem 1.5rem;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 1rem;
-        background-color: #2c3e50;
-        color: white;
-        
-        
-    }
-    .btn-share {
-        width: 100%;
-        
-    }
+.btn-preview,
+.btn-share,
+.close-btn,
+.btn-back {
+    padding: 0.5rem 1.5rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1rem;
+    background-color: #2c3e50;
+    color: white;
+}
 
-    .btn-preview:hover, .btn-share:hover {
-        background-color: #34495e;
-    }
+.btn-share {
+    width: 100%;
+}
 
-    .modal-backdrop {
-        position: fixed;
+.btn-preview:hover,
+.close-btn:hover,
+.btn-back:hover,
+.btn-share:hover {
+    background-color: #34495e;
+}
+
+.modal-backdrop {
+    position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100vh;
-    background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent black */
+    background-color: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 9999;
-    }
+}
 
-    .modal-content {
-        background-color: #444;
-        border-radius: 12px;
-        padding: 2rem;
-        
-        width: 80%;
-        position: relative;
-        color: white;
-    }
+.modal-content {
+    background-color: #444;
+    border-radius: 12px;
+    padding: 2rem;
+    width: 80%;
+    position: relative;
+    color: white;
+}
 
-    .image-preview-gallery {
-        margin-top: 1rem;
-    }
+.image-preview-gallery {
+    margin-top: 1rem;
+}
 
-    .preview-image {
-        max-width: 100%;
-        border-radius: 8px;
-        margin-top: 0.75rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+.preview-image {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-top: 0.75rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
 
-    .post-actions {
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-        margin-top: 1rem;
-    }
+.post-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 1rem;
+}
 
-    .close-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: none;
-        border: none;
-        color: white;
-        font-size: 1.5rem;
-        cursor: pointer;
-    }
 
-    .toast {
-        position: fixed;
-        top: 2rem;
-        right: 2rem;
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        color: white;
-        font-weight: bold;
-        z-index: 100;
-    }
 
-    .toast-error {
-        background-color: #e74c3c;
-    }
+.toast {
+    position: fixed;
+    top: 2rem;
+    right: 2rem;
+    padding: 1rem 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    color: white;
+    font-weight: bold;
+    z-index: 100;
+}
 
-    .toast-success {
-        background-color: #2ecc71;
-    }
+.toast-error {
+    background-color: #e74c3c;
+}
 
-    .avatar-placeholder, .avatar-image {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        object-fit: cover;
-        background-color: #ccc;
-    }
+.toast-success {
+    background-color: #2ecc71;
+}
 
-    .post-header {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 1rem;
-    }
+.avatar-placeholder,
+.avatar-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+    background-color: #ccc;
+}
 
-    .timestamp {
-        font-size: 0.85rem;
-        color: #aaa;
-    }
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
 
-    .subject {
-        font-size: 1.25rem;
-        font-weight: bold;
-        margin-bottom: 0.5rem;
-    }
+.timestamp {
+    font-size: 0.85rem;
+    color: #aaa;
+}
 
-    .body {
-        font-size: 1rem;
-        white-space: pre-wrap;
-        line-height: 1.6;
-    }
+.subject {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+}
 
+.body {
+    font-size: 1rem;
+    white-space: pre-wrap;
+    line-height: 1.6;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
 </style>
