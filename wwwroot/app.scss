@@ -1,7 +1,7 @@
 /* styles for all pages go in this file */
 
 /* css variables */
-html {
+.app-container {
     --font-size-title: 24px;
     --font-size-body: 18px;
     --font-size-small: 16px;
@@ -102,21 +102,21 @@ html {
 }
 
 /* apply themes based on system/browser preferences */
-html {
+.app-container {
     @include theme_light;
 }
 @media (prefers-color-scheme: dark) {
-    html {
+    .app-container {
         @include theme_dark;
     }
 }
 @media (prefers-contrast: more) {
-    html {
+    .app-container {
         @include theme_high_contrast_light;
     }
 
     @media (prefers-color-scheme: dark) {
-        html {
+        .app-container {
             @include theme_high_contrast_dark;
         }
     }
@@ -149,20 +149,22 @@ html {
     line-height: 1.5;
 }
 
-body {
-    /* center layout on larger screens*/
+.app-container {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+}
+
+.app-layout {
+    /* center layout on larger screens */
     margin: 0 auto;
     padding: 0 var(--border-padding);
     max-width: 760px;
 
     @include body-font;
 
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-
-    display: flex;
+    /* display: flex;
     flex-direction: column;
-    gap: var(--flex-gap);
+    gap: var(--flex-gap); */
 }
 
 h1 {

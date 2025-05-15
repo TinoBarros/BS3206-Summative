@@ -1,9 +1,14 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@rendermode InteractiveServer
+
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<MainLayout> Logger
 
-<div class="app-container">
+<CascadingAuthenticationState>
+<CascadingValue Value="session">
+<CascadingValue Value="UpdateLayout">
+<div class="app-container @(session.ThemeClasses())">
     <div class="app-layout">
         @{
             var currentUrl = NavigationManager.Uri.ToLower();
@@ -26,7 +31,7 @@
                                 <div class="logo-container">
                                     <h2 class="app-title">HealthApp</h2>
                                 </div>
-                                
+
                                 <div class="nav-links">
                                     <a href="/feed" class="nav-item @GetActiveClass("/feed")">
                                         <span class="nav-icon">🏠</span>
@@ -49,7 +54,7 @@
                                         Settings
                                     </a>
                                 </div>
-                                
+
                                 <div class="nav-footer">
                                     <form method="post" action="/api/auth/logout" id="logoutForm">
                                         <button type="submit" class="nav-item logout-button">
@@ -61,7 +66,7 @@
                             </nav>
                         </div>
                     </div>
-                    
+
                     <main class="main-content">
                         @Body
                     </main>
@@ -75,6 +80,9 @@
         }
     </div>
 </div>
+</CascadingValue>
+</CascadingValue>
+</CascadingAuthenticationState>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
@@ -98,12 +106,12 @@
         min-height: 100vh;
         background-color: #333;
     }
-    
+
     .app-layout {
         display: flex;
         min-height: 100vh;
         width: 100%;
-        max-width: 1200px;
+        max-width: 760px;
         position: relative;
     }
 
@@ -120,13 +128,13 @@
         border-right: 1px solid #e0e8f5;
         z-index: 10;
     }
-    
+
     .sidebar-container {
         display: flex;
         justify-content: center;
         width: 100%;
     }
-    
+
     .side-nav {
         width: 100%;
         max-width: 180px;
@@ -137,26 +145,26 @@
         overflow-y: auto;
         padding: 0 10px;
     }
-    
+
     .logo-container {
         padding: 20px 0;
         border-bottom: 1px solid #e0e8f5;
         text-align: center;
     }
-    
+
     .app-title {
         color: #4a8fe7;
         margin: 0;
         font-size: 1.5rem;
     }
-    
+
     .nav-links {
         flex: 1;
         display: flex;
         flex-direction: column;
         padding: 20px 0;
     }
-    
+
     .nav-item {
         display: flex;
         align-items: center;
@@ -169,34 +177,34 @@
         border-radius: 8px;
         margin: 4px 0;
     }
-    
+
     .nav-item:hover {
         background-color: rgba(74, 143, 231, 0.1);
     }
-    
+
     .nav-item.active {
         background-color: rgba(74, 143, 231, 0.15);
         color: #4a8fe7;
         font-weight: 500;
     }
-    
+
     .nav-icon {
         font-size: 1.2rem;
         width: 24px;
         text-align: center;
     }
-    
+
     .nav-footer {
         padding: 20px 0;
         border-top: 1px solid #e0e8f5;
     }
-    
+
     .nav-footer form {
         margin: 0;
         padding: 0;
         width: 100%;
     }
-    
+
     .logout-button {
         width: 100%;
         border: none;
@@ -211,11 +219,11 @@
         padding: 12px 20px;
         border-radius: 8px;
     }
-    
+
     .logout-button:hover {
         background-color: rgba(231, 76, 60, 0.1);
     }
-    
+
     .main-content {
         flex: 1;
         padding: 0;
@@ -230,7 +238,7 @@
         left: 50%;
         transform: translateX(-450px);
     }
-    
+
     .auth-content {
         flex: 1;
         display: flex;
@@ -241,3 +249,14 @@
         color: white;
     }
 </style>
+
+@code {
+    private Session session = new Session();
+
+    private EventCallback UpdateLayout => EventCallback.Factory.Create(this, updateLayout);
+
+    private void updateLayout()
+    {
+        StateHasChanged();
+    }
+}
