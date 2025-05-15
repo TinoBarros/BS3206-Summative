@@ -4,6 +4,7 @@
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ILogger<MainLayout> Logger
+@inject IJSRuntime JS
 
 <CascadingAuthenticationState>
 <CascadingValue Value="session">
@@ -258,5 +259,30 @@
     private void updateLayout()
     {
         StateHasChanged();
+    }
+
+    private IJSObjectReference? module;
+    private DotNetObjectReference<MainLayout>? objRef;
+
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            objRef = DotNetObjectReference.Create(this);
+            module = await JS.InvokeAsync<IJSObjectReference>("import",
+                "./Components/Layout/MainLayout.razor.js");
+            await module!.InvokeVoidAsync("init", objRef);
+        }
+    }
+
+    [JSInvokable]
+    public void handleSystemThemeChanged(bool prefersDark, bool prefersMoreContrast) {
+        session.SystemTheme = (prefersDark, prefersMoreContrast) switch {
+            (false, false) => Session.ThemeChoice.Light,
+            (true, false) => Session.ThemeChoice.Dark,
+            (false, true) => Session.ThemeChoice.HighContrastLight,
+            (true, true) => Session.ThemeChoice.HighContrastDark,
+        };
+        updateLayout();
     }
 }
