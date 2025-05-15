@@ -103,6 +103,8 @@
     private bool ShowToast { get; set; } = false;
     private string ToastMessage { get; set; } = "";
     private string ToastType { get; set; } = "success";
+    private const long MaxFileSize = 5 * 1024 * 1024; // 5MB - can be changed if needed
+    private readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
 
     //keeps track of character count in subject
     private void UpdateCharacterCount(ChangeEventArgs e)
@@ -178,11 +180,29 @@
 
     //creates PostImage
     private async Task HandleImageUpload(InputFileChangeEventArgs e)
+{
+    foreach (var file in e.GetMultipleFiles())
     {
-       foreach (var file in e.GetMultipleFiles())
+       
+        if (file.Size > MaxFileSize)
+        {
+            await ShowToastMessage($"File '{file.Name}' exceeds the maximum size of {MaxFileSize / (1024 * 1024)}MB.", "error");
+            continue;
+        }
+
+        
+        var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+        if (!AllowedExtensions.Contains(extension))
+        {
+            await ShowToastMessage($"File type '{extension}' is not allowed. Allowed types are: {string.Join(", ", AllowedExtensions)}.", "error");
+            continue;
+        }
+
+        
+        try
         {
             using var stream = new MemoryStream();
-            await file.OpenReadStream(maxAllowedSize: 10_000_000).CopyToAsync(stream);
+            await file.OpenReadStream(MaxFileSize).CopyToAsync(stream);
 
             tempUploadedImages.Add(new PostImage
             {
@@ -190,7 +210,14 @@
                 ContentType = file.ContentType
             });
         }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to process file upload.");
+            await ShowToastMessage($"An error occurred while uploading '{file.Name}'.", "error");
+        }
     }
+}
+
     
     //loads user data
     protected override async Task OnInitializedAsync()
