@@ -1,0 +1,38 @@
+// Stores global state across all pages such as the chosen theme.
+public class Session
+{
+    /// <summary> The currently chosen theme, null represents no preference (use
+    /// the system theme (SystemTheme)) </summary>
+    public ThemeChoice? Theme = null;
+
+    /// <summary>
+    /// The theme detected from system preferences via media queries.
+    /// This is updated by a Javascript event handler in MainLayout whenever a
+    /// relevant media query value is updated.
+    /// </summary>
+    public ThemeChoice SystemTheme = ThemeChoice.Light;
+
+    public enum ThemeChoice
+    {
+        Light,
+        Dark,
+        HighContrastLight,
+        HighContrastDark,
+    }
+
+    public static string ThemeChoiceToClasses(ThemeChoice themeChoice)
+    {
+        return themeChoice switch
+        {
+            ThemeChoice.Light => "theme-light",
+            ThemeChoice.Dark => "theme-dark",
+            ThemeChoice.HighContrastLight => "theme-high-contrast-light high-contrast",
+            ThemeChoice.HighContrastDark => "theme-high-contrast-light high-contrast",
+        };
+    }
+
+    public string ThemeClasses()
+    {
+        return ThemeChoiceToClasses(this.Theme ?? this.SystemTheme);
+    }
+}
