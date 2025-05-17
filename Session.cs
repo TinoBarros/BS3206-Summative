@@ -27,7 +27,7 @@ public class Session
             ThemeChoice.Light => "theme-light",
             ThemeChoice.Dark => "theme-dark",
             ThemeChoice.HighContrastLight => "theme-high-contrast-light high-contrast",
-            ThemeChoice.HighContrastDark => "theme-high-contrast-light high-contrast",
+            ThemeChoice.HighContrastDark => "theme-high-contrast-dark high-contrast",
         };
     }
 
