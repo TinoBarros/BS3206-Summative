@@ -16,34 +16,28 @@
 
 <PageTitle>Create Post</PageTitle>
 
-<div class="post-container">
+<div class="subtle-container">
     @if (ShowToast)
     {
     <div class="toast @(ToastType == "error" ? "toast-error" : "toast-success")">
         @ToastMessage
     </div>
     }
-    
-        <button class="btn-back" @onclick="NavigateBack">← Back</button>
-        <h1>Create Post</h1>
+    <button class="button-optional-action fill-width" @onclick="NavigateBack">← Back</button>
+    <h1 class="center-text">Create Post</h1>
 
-    <div class="form-group">
-        <label for="subject">Subject</label>
-        <input id="subject" type="text" class="form-control" @bind="Subject" maxlength="100" />
+    <label for="subject">Subject</label>
+    <input id="subject" type="text" class="input-single-line fill-width" @bind="Subject" maxlength="100" />
+
+    <label for="description">Description</label>
+    <textarea id="description" class="input-multi-line" maxlength="800" rows="6" @bind="Description" @oninput="UpdateCharacterCount"></textarea>
+    <div class="flex-horizontal flex-end">
+        <span class="font-small">@Description.Length / 800</span>
     </div>
 
-    <div class="form-group">
-        <label for="description">Description</label>
-        <textarea id="description" class="form-control" maxlength="800" rows="6" @bind="Description" @oninput="UpdateCharacterCount"></textarea>
-        <div class="char-counter">@Description.Length / 800</div>
-    </div>
-
-    <div class="form-group upload-container">
-        <InputFile OnChange="HandleImageUpload" multiple accept="image/*" />
-        <button class="btn-preview" @onclick="TogglePreview">Preview</button>
-    </div>
-
-    <button class="btn-share" @onclick="CreatePost">Share</button>
+    <InputFile OnChange="HandleImageUpload" multiple accept="image/*" />
+    <button class="button-optional-action" style="width: auto;" @onclick="TogglePreview">Preview</button>
+    <button class="button-suggested-action" style="width: auto;" @onclick="SubmitPost">Share</button>
 </div>
 
 
@@ -89,7 +83,7 @@
                 <span>💬 0</span>
             </div>
 
-            <button class="close-btn" @onclick="ClosePreview">Close</button>
+            <button class="button-suggested-action" @onclick="ClosePreview">Close</button>
         </div>
     </div>
 }
@@ -140,9 +134,9 @@
         ShowToast = false;
         StateHasChanged();
     }
-    
+
     //creates post in the database
-    private async Task CreatePost()
+    private async Task SubmitPost()
     {
          if (string.IsNullOrWhiteSpace(Subject) || string.IsNullOrWhiteSpace(Description))
             {
@@ -183,14 +177,14 @@
 {
     foreach (var file in e.GetMultipleFiles())
     {
-       
+
         if (file.Size > MaxFileSize)
         {
             await ShowToastMessage($"File '{file.Name}' exceeds the maximum size of {MaxFileSize / (1024 * 1024)}MB.", "error");
             continue;
         }
 
-        
+
         var extension = Path.GetExtension(file.Name).ToLowerInvariant();
         if (!AllowedExtensions.Contains(extension))
         {
@@ -198,7 +192,7 @@
             continue;
         }
 
-        
+
         try
         {
             using var stream = new MemoryStream();
@@ -218,7 +212,7 @@
     }
 }
 
-    
+
     //loads user data
     protected override async Task OnInitializedAsync()
     {
@@ -229,19 +223,19 @@
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            
-           
+
+
             var userEmail = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-            
+
             if (string.IsNullOrEmpty(userEmail))
             {
                 Logger.LogWarning("Unable to determine current user email from auth state");
                 return;
             }
-            
+
             Logger.LogInformation("Loading profile for user with email: {Email}", userEmail);
             loggedInUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
-            
+
             if (loggedInUser == null)
             {
                 Logger.LogWarning("No user found with email: {Email}", userEmail);
@@ -257,185 +251,3 @@
         }
     }
 }
-
-<style>
-.post-container {
-    background: #444;
-    border-radius: 12px;
-    padding: 1.5rem;
-    max-width: 400px;
-    width: 100%;
-    margin: 0 auto;
-    margin-bottom: 2rem;
-    transition: box-shadow 0.2s ease;
-}
-
-h1 {
-    text-align: center;
-    margin-bottom: 1.5rem;
-}
-
-.form-group {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    margin-bottom: 1.5rem;
-}
-
-label {
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-}
-
-.form-control {
-    width: 100%;
-    padding: 0.75rem;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 1rem;
-    background-color: #555;
-    color: white;
-    box-sizing: border-box;
-}
-
-.form-control::placeholder {
-    color: #aaa;
-}
-
-.char-counter {
-    text-align: right;
-    font-size: 0.9rem;
-    color: #bbb;
-    margin-top: 0.25rem;
-}
-
-.upload-container {
-    display: flex;
-    gap: 1rem;
-}
-
-.btn-preview,
-.btn-share,
-.close-btn,
-.btn-back {
-    padding: 0.5rem 1.5rem;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1rem;
-    background-color: #2c3e50;
-    color: white;
-}
-
-.btn-share {
-    width: 100%;
-}
-
-.btn-preview:hover,
-.close-btn:hover,
-.btn-back:hover,
-.btn-share:hover {
-    background-color: #34495e;
-}
-
-.modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-}
-
-.modal-content {
-    background-color: #444;
-    border-radius: 12px;
-    padding: 2rem;
-    width: 80%;
-    position: relative;
-    color: white;
-}
-
-.image-preview-gallery {
-    margin-top: 1rem;
-}
-
-.preview-image {
-    max-width: 100%;
-    border-radius: 8px;
-    margin-top: 0.75rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.post-actions {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    margin-top: 1rem;
-}
-
-
-
-.toast {
-    position: fixed;
-    top: 2rem;
-    right: 2rem;
-    padding: 1rem 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-    color: white;
-    font-weight: bold;
-    z-index: 100;
-}
-
-.toast-error {
-    background-color: #e74c3c;
-}
-
-.toast-success {
-    background-color: #2ecc71;
-}
-
-.avatar-placeholder,
-.avatar-image {
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    object-fit: cover;
-    background-color: #ccc;
-}
-
-.post-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-}
-
-.timestamp {
-    font-size: 0.85rem;
-    color: #aaa;
-}
-
-.subject {
-    font-size: 1.25rem;
-    font-weight: bold;
-    margin-bottom: 0.5rem;
-    word-wrap: break-word;
-    white-space: pre-wrap;
-    overflow-wrap: break-word;
-}
-
-.body {
-    font-size: 1rem;
-    white-space: pre-wrap;
-    line-height: 1.6;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-}
-</style>

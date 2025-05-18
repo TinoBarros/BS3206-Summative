@@ -12,118 +12,32 @@
 
 <PageTitle>Login</PageTitle>
 
-<div class="auth-container">
-    <h3>Login</h3>
-    
-    @if (!string.IsNullOrEmpty(errorMessage))
-    {
-        <div class="error-message">@errorMessage</div>
-    }
-    
-    <form method="post" action="/api/auth/login">
-        <input type="hidden" name="returnUrl" value="@(ReturnUrl ?? "/feed")" />
+<div class="flex-horizontal center expand">
+    <div class="subtle-container" style="width: 350px;">
+        <h1 class="center-text">Login</h1>
         
-        <div class="form-field">
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="font-error center-text">@errorMessage</div>
+        }
+        
+        <form method="post" action="/api/auth/login" class="flex-vertical">
+            <input type="hidden" name="returnUrl" value="@(ReturnUrl ?? "/feed")" />
+            
             <label>Email</label>
-            <input type="email" name="email" class="input-field" required />
-        </div>
-        
-        <div class="form-field">
+            <input type="email" name="email" class="input-single-line fill-width" required />
+            
             <label>Password</label>
-            <input type="password" name="password" class="input-field" required />
-        </div>
+            <input type="password" name="password" class="input-single-line fill-width" required />
+            
+            <button type="submit" class="button-suggested-action fill-width" style="margin-top: 15px;">Login</button>
+        </form>
         
-        <button type="submit" class="submit-button">Login</button>
-    </form>
-    
-    <div class="auth-footer">
-        <a href="/register">Don't have an account? Register here</a>
+        <div class="center-text">
+            <a href="/register">Don't have an account? Register here</a>
+        </div>
     </div>
 </div>
-
-<style>
-    .auth-container {
-        background-color: #333;
-        border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        color: white;
-        max-width: 400px;
-        margin: 40px auto;
-        padding: 30px;
-    }
-    
-    h3 {
-        text-align: center;
-        margin-bottom: 24px;
-        font-size: 24px;
-        font-weight: 500;
-    }
-    
-    .error-message {
-        color: var(--color-error-foreground);
-        margin-bottom: 10px;
-    }
-    
-    .form-field {
-        margin-bottom: 16px;
-    }
-    
-    label {
-        display: block;
-        font-size: 1rem;
-        margin-bottom: 8px;
-        color: #f0f0f0;
-    }
-    
-    .input-field {
-        display: block;
-        width: 100%;
-        box-sizing: border-box;
-        padding: 15px;
-        font-size: 16px;
-        background-color: rgba(255, 255, 255, 0.07);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 6px;
-        transition: border-color 0.2s;
-    }
-    
-    .input-field:focus {
-        outline: none;
-        border-color: #4a8fe7;
-    }
-    
-    .submit-button {
-        background-color: #4a8fe7;
-        color: white;
-        border: none;
-        padding: 15px 16px;
-        border-radius: 6px;
-        font-size: 16px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        width: 100%;
-        margin-top: 10px;
-    }
-    
-    .submit-button:hover {
-        background-color: #3a7bcf;
-    }
-    
-    .auth-footer {
-        text-align: center;
-        margin-top: 18px;
-    }
-    
-    .auth-footer a {
-        color: #fff;
-        text-decoration: none;
-    }
-    
-    .auth-footer a:hover {
-        text-decoration: underline;
-    }
-</style>
 
 @code {
     private string? errorMessage;

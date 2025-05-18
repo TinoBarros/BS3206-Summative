@@ -1,4 +1,14 @@
 /* styles for all pages go in this file */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body, .app-container {
+  height: 100%;
+}
+
 /* css variables */
 .app-container {
   --font-size-title: 24px;
@@ -357,13 +367,14 @@
 .app-container {
   background-color: var(--color-background);
   color: var(--color-foreground);
+  overflow-y: auto;
 }
 
 .app-layout {
   /* center layout on larger screens */
   margin: 0 auto;
   padding: 0 var(--border-padding);
-  max-width: 760px;
+  max-width: 500px;
   /* https://github.com/system-fonts/modern-font-stacks?tab=readme-ov-file#system-ui */
   font-family: system-ui, sans-serif;
   font-size: var(--font-size-body);
@@ -396,18 +407,64 @@ a {
   font-size: var(--font-size-small);
 }
 
+.font-error {
+  color: var(--color-error-foreground);
+}
+
 .font-username {
   /* https://github.com/system-fonts/modern-font-stacks?tab=readme-ov-file#monospace-code */
   font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
 }
 
-.subtle-container {
+.center-text {
+  text-align: center;
+}
+
+.flex-vertical, .subtle-container {
   display: flex;
   flex-direction: column;
   gap: var(--flex-gap);
+}
+
+.flex-horizontal {
+  display: flex;
+  flex-direction: row;
+  gap: var(--flex-gap);
+}
+
+.subtle-container {
   border: var(--border-width) solid var(--color-subtle-border);
   border-radius: var(--border-radius);
   padding: var(--border-padding);
+}
+
+.fill-width {
+  width: auto !important;
+  max-width: unset !important;
+}
+
+.center {
+  justify-content: center;
+}
+
+.flex-end {
+  justify-content: flex-end;
+}
+
+.grow {
+  flex: 1 1;
+}
+
+.shrink {
+  flex: 0 1;
+}
+
+.pad {
+  padding: var(--border-padding);
+}
+
+.no-gap {
+  gap: 0;
 }
 
 .button-suggested-action {
@@ -418,6 +475,7 @@ a {
   padding: 5px 15px;
   font-size: var(--font-size-body);
   width: fit-content;
+  cursor: pointer;
   --color-button-border: var(--color-button-suggested-action-border);
   --color-button-background: var(--color-button-suggested-action-background);
   --color-button-text: var(--color-button-suggested-action-text);
@@ -444,6 +502,7 @@ a {
   padding: 5px 15px;
   font-size: var(--font-size-body);
   width: fit-content;
+  cursor: pointer;
   --color-button-border: var(--color-button-optional-action-border);
   --color-button-background: var(--color-button-optional-action-background);
   --color-button-text: var(--color-button-optional-action-text);
@@ -470,6 +529,7 @@ a {
   padding: 5px 15px;
   font-size: var(--font-size-body);
   width: fit-content;
+  cursor: pointer;
   --color-button-border: var(--color-button-destructive-action-border);
   --color-button-background: var(
       --color-button-destructive-action-background
@@ -523,7 +583,7 @@ a {
   align-items: center;
   background-color: var(--color-background);
   padding: 3px 5px;
-  box-sizing: border-box;
+  /* box-sizing: border-box; */
   border: unset;
   font-size: var(--font-size-small);
   color: var(--color-foreground);
