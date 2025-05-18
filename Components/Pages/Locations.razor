@@ -274,7 +274,6 @@
         // Only allow admins to delete locations
         if (currentUser == null || !currentUser.IsAdmin)
         {
-            // Optionally, show a message or log unauthorized attempt
             return;
         }
         // Delete the image file if it's an uploaded file
@@ -294,18 +293,13 @@
     // Handle thumbs up interaction
     private async Task ThumbsUp(Data.Location location)
     {
-        if (currentUser == null)
-        {
-            // Handle unauthenticated user
-            return;
-        }
+        if (currentUser == null) return;
 
         var interaction = await DbContext.LocationInteractions
             .FirstOrDefaultAsync(li => li.UserId == currentUser.Id && li.LocationId == location.Id);
 
         if (interaction == null)
         {
-            // Create new interaction
             interaction = new LocationInteraction
             {
                 UserId = currentUser.Id,
@@ -326,14 +320,14 @@
             }
             else
             {
-                // Add like and remove dislike if exists
-                interaction.IsLiked = true;
-                interaction.IsDisliked = false;
-                location.ThumbsUp++;
+                // Add like, remove dislike if present
                 if (interaction.IsDisliked)
                 {
+                    interaction.IsDisliked = false;
                     location.ThumbsDown--;
                 }
+                interaction.IsLiked = true;
+                location.ThumbsUp++;
             }
         }
 
@@ -346,17 +340,13 @@
     // Handle thumbs down interaction
     private async Task ThumbsDown(Data.Location location)
     {
-        if (currentUser == null)
-        {
-            return;
-        }
+        if (currentUser == null) return;
 
         var interaction = await DbContext.LocationInteractions
             .FirstOrDefaultAsync(li => li.UserId == currentUser.Id && li.LocationId == location.Id);
 
         if (interaction == null)
         {
-            // Create new interaction
             interaction = new LocationInteraction
             {
                 UserId = currentUser.Id,
@@ -377,14 +367,14 @@
             }
             else
             {
-                // Add dislike and remove like if it already exists (and vice versa)
-                interaction.IsDisliked = true;
-                interaction.IsLiked = false;
-                location.ThumbsDown++;
+                // Add dislike, remove like if present
                 if (interaction.IsLiked)
                 {
+                    interaction.IsLiked = false;
                     location.ThumbsUp--;
                 }
+                interaction.IsDisliked = true;
+                location.ThumbsDown++;
             }
         }
 
