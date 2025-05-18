@@ -6,147 +6,25 @@
 
 <PageTitle>Following</PageTitle>
 
-<div class="following-container">
-    <h1>People You Follow</h1>
-    <div class="following-content">
-        <div class="search-bar">
-            <input type="text" placeholder="Search people..." class="search-input" />
-            <button class="search-button">Search</button>
-        </div>
-        <div class="following-grid">
-            <div class="user-card">
-                <div class="user-avatar">
-                    <img src="https://via.placeholder.com/100" alt="User" />
-                </div>
-                <div class="user-info">
-                    <h3>User Name</h3>
-                    <p>@("@")johndoe</p>
-                    <button class="follow-button following">Following</button>
-                </div>
+<h1 class="center-text" style="padding: 10px 0;">People You Follow</h1>
+<div class="flex-horizontal fill-width">
+    <input type="text" placeholder="Search people..." class="input-single-line fill-width grow" />
+    <button class="button-suggested-action">Search</button>
+</div>
+
+<div class="subtle-container">
+    <div class="flex-horizontal">
+        <div class="flex-vertical center">
+            <div class="user-avatar">
+                <img src="https://via.placeholder.com/100" alt="User" />
             </div>
-            <!-- Add more user cards as needed -->
+        </div>
+        <div class="flex-vertical center grow">
+            <h3>User Name</h3>
+            <p>@("@")johndoe</p>
+        </div>
+        <div class="flex-vertical center">
+            <button class="button-suggested-action" style="height: fit-content;">Following</button>
         </div>
     </div>
 </div>
-
-<style>
-    .following-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 20px;
-        width: 100%;
-    }
-
-    .following-container h1 {
-        margin-bottom: 24px;
-        font-size: 24px;
-        font-weight: 600;
-        color: white;
-    }
-
-    .following-content {
-        background: #444;
-        border-radius: 8px;
-        padding: 20px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-    }
-
-    .search-bar {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-
-    .search-input {
-        flex: 1;
-        padding: 10px;
-        border: 1px solid #555;
-        border-radius: 4px;
-        font-size: 16px;
-        background-color: #555;
-        color: white;
-    }
-
-    .search-button {
-        padding: 10px 20px;
-        background-color: #4a8fe7;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-
-    .search-button:hover {
-        background-color: #3a7fd7;
-    }
-
-    .following-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 20px;
-    }
-
-    .user-card {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        padding: 20px;
-        border: 1px solid #555;
-        border-radius: 8px;
-        transition: transform 0.2s;
-        background-color: #555;
-    }
-
-    .user-card:hover {
-        transform: translateY(-2px);
-    }
-
-    .user-avatar {
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        overflow: hidden;
-        margin-bottom: 15px;
-    }
-
-    .user-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .user-info {
-        text-align: center;
-    }
-
-    .user-info h3 {
-        margin: 0 0 5px 0;
-        font-size: 18px;
-        color: white;
-    }
-
-    .user-info p {
-        margin: 0 0 15px 0;
-        color: #ccc;
-        font-size: 14px;
-    }
-
-    .follow-button {
-        padding: 8px 20px;
-        border-radius: 20px;
-        font-size: 14px;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .follow-button.following {
-        background-color: #4a8fe7;
-        color: white;
-        border: none;
-    }
-
-    .follow-button.following:hover {
-        background-color: #e74c3c;
-    }
-</style> 
