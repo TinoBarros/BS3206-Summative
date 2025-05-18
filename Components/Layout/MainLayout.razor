@@ -26,7 +26,7 @@
         {
             <AuthorizeView>
                 <Authorized>
-                    <nav class="sidebar-wrapper flex-vertical">
+                    <nav class="desktop-sidebar flex-vertical">
                         <h1 class="app-title">HealthApp</h1>
 
                         <a href="/feed" class="nav-item @GetActiveClass("/feed")">
@@ -58,7 +58,33 @@
                                 </button>
                             </form>
                         </div>
-                        </nav>
+                    </nav>
+
+                    <nav class="mobile-sidebar flex-horizontal">
+                        <h1 class="app-title">HealthApp</h1>
+                        <div class="mobile-sidebar-icons flex-horizontal">
+                            <a href="/feed" class="nav-item @GetActiveClass("/feed")">
+                                <span class="nav-icon">🏠</span>
+                            </a>
+                            <a href="/locations" class="nav-item @GetActiveClass("/locations")">
+                                <span class="nav-icon">📍</span>
+                            </a>
+                            <a href="/following" class="nav-item @GetActiveClass("/following")">
+                                <span class="nav-icon">👥</span>
+                            </a>
+                            <a href="/account" class="nav-item @GetActiveClass("/account")">
+                                <span class="nav-icon">👤</span>
+                            </a>
+                            <a href="/settings" class="nav-item @GetActiveClass("/settings")">
+                                <span class="nav-icon">⚙️</span>
+                            </a>
+                            <form method="post" action="/api/auth/logout" style="display: contents;">
+                                <button type="submit" class="nav-item logout-button">
+                                    <span class="nav-icon">🚪</span>
+                                </button>
+                            </form>
+                        </div>
+                    </nav>
 
                     <main class="flex-vertical">
                         @Body

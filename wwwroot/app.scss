@@ -412,6 +412,7 @@ a {
 
 .input-single-line {
     max-width: 300px;
+    min-width: 0;
     padding: 5px;
 
     border: 2px solid var(--color-solid-border);
@@ -425,6 +426,7 @@ a {
 
 .input-multi-line {
     max-width: 500px;
+    min-width: 0;
     padding: 5px;
 
     border: 2px solid var(--color-solid-border);
