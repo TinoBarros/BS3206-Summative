@@ -5,7 +5,9 @@
   box-sizing: border-box;
 }
 
-html, body, .app-container {
+html,
+body,
+.app-container {
   height: 100%;
 }
 
@@ -33,19 +35,13 @@ html, body, .app-container {
   --color-solid-border: #666;
   --color-error-foreground: #c73939;
   --color-button-suggested-action-border: #456ae6;
-  --color-button-suggested-action-background: var(
-      --color-button-suggested-action-border
-  );
+  --color-button-suggested-action-background: var(--color-button-suggested-action-border);
   --color-button-suggested-action-text: #fff;
   --color-button-optional-action-border: #3558ca;
   --color-button-optional-action-background: var(--color-background);
-  --color-button-optional-action-text: var(
-      --color-button-optional-action-border
-  );
+  --color-button-optional-action-text: var(--color-button-optional-action-border);
   --color-button-destructive-action-border: #c73939;
-  --color-button-destructive-action-background: var(
-      --color-button-destructive-action-border
-  );
+  --color-button-destructive-action-background: var(--color-button-destructive-action-border);
   --color-button-destructive-action-text: #fff;
 }
 
@@ -57,19 +53,13 @@ html, body, .app-container {
     --color-solid-border: #666;
     --color-error-foreground: #c73939;
     --color-button-suggested-action-border: #456ae6;
-    --color-button-suggested-action-background: var(
-        --color-button-suggested-action-border
-    );
+    --color-button-suggested-action-background: var(--color-button-suggested-action-border);
     --color-button-suggested-action-text: #fff;
     --color-button-optional-action-border: #3558ca;
     --color-button-optional-action-background: var(--color-background);
-    --color-button-optional-action-text: var(
-        --color-button-optional-action-border
-    );
+    --color-button-optional-action-text: var(--color-button-optional-action-border);
     --color-button-destructive-action-border: #c73939;
-    --color-button-destructive-action-background: var(
-        --color-button-destructive-action-border
-    );
+    --color-button-destructive-action-background: var(--color-button-destructive-action-border);
     --color-button-destructive-action-text: #fff;
     --color-background: #333;
     --color-foreground: #eee;
@@ -89,19 +79,13 @@ html, body, .app-container {
     --color-solid-border: #666;
     --color-error-foreground: #c73939;
     --color-button-suggested-action-border: #456ae6;
-    --color-button-suggested-action-background: var(
-        --color-button-suggested-action-border
-    );
+    --color-button-suggested-action-background: var(--color-button-suggested-action-border);
     --color-button-suggested-action-text: #fff;
     --color-button-optional-action-border: #3558ca;
     --color-button-optional-action-background: var(--color-background);
-    --color-button-optional-action-text: var(
-        --color-button-optional-action-border
-    );
+    --color-button-optional-action-text: var(--color-button-optional-action-border);
     --color-button-destructive-action-border: #c73939;
-    --color-button-destructive-action-background: var(
-        --color-button-destructive-action-border
-    );
+    --color-button-destructive-action-background: var(--color-button-destructive-action-border);
     --color-button-destructive-action-text: #fff;
     /* --border-width: 2px; */
     --color-background: #fff;
@@ -128,19 +112,13 @@ html, body, .app-container {
     --color-solid-border: #666;
     --color-error-foreground: #c73939;
     --color-button-suggested-action-border: #456ae6;
-    --color-button-suggested-action-background: var(
-        --color-button-suggested-action-border
-    );
+    --color-button-suggested-action-background: var(--color-button-suggested-action-border);
     --color-button-suggested-action-text: #fff;
     --color-button-optional-action-border: #3558ca;
     --color-button-optional-action-background: var(--color-background);
-    --color-button-optional-action-text: var(
-        --color-button-optional-action-border
-    );
+    --color-button-optional-action-text: var(--color-button-optional-action-border);
     --color-button-destructive-action-border: #c73939;
-    --color-button-destructive-action-background: var(
-        --color-button-destructive-action-border
-    );
+    --color-button-destructive-action-background: var(--color-button-destructive-action-border);
     --color-button-destructive-action-text: #fff;
     --color-background: #333;
     --color-foreground: #eee;
@@ -156,19 +134,13 @@ html, body, .app-container {
     --color-solid-border: #666;
     --color-error-foreground: #c73939;
     --color-button-suggested-action-border: #456ae6;
-    --color-button-suggested-action-background: var(
-        --color-button-suggested-action-border
-    );
+    --color-button-suggested-action-background: var(--color-button-suggested-action-border);
     --color-button-suggested-action-text: #fff;
     --color-button-optional-action-border: #3558ca;
     --color-button-optional-action-background: var(--color-background);
-    --color-button-optional-action-text: var(
-        --color-button-optional-action-border
-    );
+    --color-button-optional-action-text: var(--color-button-optional-action-border);
     --color-button-destructive-action-border: #c73939;
-    --color-button-destructive-action-background: var(
-        --color-button-destructive-action-border
-    );
+    --color-button-destructive-action-background: var(--color-button-destructive-action-border);
     --color-button-destructive-action-text: #fff;
     /* --border-width: 2px; */
     --color-background: #fff;
@@ -202,19 +174,13 @@ html, body, .app-container {
   --color-solid-border: #666;
   --color-error-foreground: #c73939;
   --color-button-suggested-action-border: #456ae6;
-  --color-button-suggested-action-background: var(
-      --color-button-suggested-action-border
-  );
+  --color-button-suggested-action-background: var(--color-button-suggested-action-border);
   --color-button-suggested-action-text: #fff;
   --color-button-optional-action-border: #3558ca;
   --color-button-optional-action-background: var(--color-background);
-  --color-button-optional-action-text: var(
-      --color-button-optional-action-border
-  );
+  --color-button-optional-action-text: var(--color-button-optional-action-border);
   --color-button-destructive-action-border: #c73939;
-  --color-button-destructive-action-background: var(
-      --color-button-destructive-action-border
-  );
+  --color-button-destructive-action-background: var(--color-button-destructive-action-border);
   --color-button-destructive-action-text: #fff;
 }
 
@@ -225,19 +191,13 @@ html, body, .app-container {
   --color-solid-border: #666;
   --color-error-foreground: #c73939;
   --color-button-suggested-action-border: #456ae6;
-  --color-button-suggested-action-background: var(
-      --color-button-suggested-action-border
-  );
+  --color-button-suggested-action-background: var(--color-button-suggested-action-border);
   --color-button-suggested-action-text: #fff;
   --color-button-optional-action-border: #3558ca;
   --color-button-optional-action-background: var(--color-background);
-  --color-button-optional-action-text: var(
-      --color-button-optional-action-border
-  );
+  --color-button-optional-action-text: var(--color-button-optional-action-border);
   --color-button-destructive-action-border: #c73939;
-  --color-button-destructive-action-background: var(
-      --color-button-destructive-action-border
-  );
+  --color-button-destructive-action-background: var(--color-button-destructive-action-border);
   --color-button-destructive-action-text: #fff;
   --color-background: #333;
   --color-foreground: #eee;
@@ -256,19 +216,13 @@ html, body, .app-container {
   --color-solid-border: #666;
   --color-error-foreground: #c73939;
   --color-button-suggested-action-border: #456ae6;
-  --color-button-suggested-action-background: var(
-      --color-button-suggested-action-border
-  );
+  --color-button-suggested-action-background: var(--color-button-suggested-action-border);
   --color-button-suggested-action-text: #fff;
   --color-button-optional-action-border: #3558ca;
   --color-button-optional-action-background: var(--color-background);
-  --color-button-optional-action-text: var(
-      --color-button-optional-action-border
-  );
+  --color-button-optional-action-text: var(--color-button-optional-action-border);
   --color-button-destructive-action-border: #c73939;
-  --color-button-destructive-action-background: var(
-      --color-button-destructive-action-border
-  );
+  --color-button-destructive-action-background: var(--color-button-destructive-action-border);
   --color-button-destructive-action-text: #fff;
   /* --border-width: 2px; */
   --color-background: #fff;
@@ -294,19 +248,13 @@ html, body, .app-container {
   --color-solid-border: #666;
   --color-error-foreground: #c73939;
   --color-button-suggested-action-border: #456ae6;
-  --color-button-suggested-action-background: var(
-      --color-button-suggested-action-border
-  );
+  --color-button-suggested-action-background: var(--color-button-suggested-action-border);
   --color-button-suggested-action-text: #fff;
   --color-button-optional-action-border: #3558ca;
   --color-button-optional-action-background: var(--color-background);
-  --color-button-optional-action-text: var(
-      --color-button-optional-action-border
-  );
+  --color-button-optional-action-text: var(--color-button-optional-action-border);
   --color-button-destructive-action-border: #c73939;
-  --color-button-destructive-action-background: var(
-      --color-button-destructive-action-border
-  );
+  --color-button-destructive-action-background: var(--color-button-destructive-action-border);
   --color-button-destructive-action-text: #fff;
   --color-background: #333;
   --color-foreground: #eee;
@@ -322,19 +270,13 @@ html, body, .app-container {
   --color-solid-border: #666;
   --color-error-foreground: #c73939;
   --color-button-suggested-action-border: #456ae6;
-  --color-button-suggested-action-background: var(
-      --color-button-suggested-action-border
-  );
+  --color-button-suggested-action-background: var(--color-button-suggested-action-border);
   --color-button-suggested-action-text: #fff;
   --color-button-optional-action-border: #3558ca;
   --color-button-optional-action-background: var(--color-background);
-  --color-button-optional-action-text: var(
-      --color-button-optional-action-border
-  );
+  --color-button-optional-action-text: var(--color-button-optional-action-border);
   --color-button-destructive-action-border: #c73939;
-  --color-button-destructive-action-background: var(
-      --color-button-destructive-action-border
-  );
+  --color-button-destructive-action-background: var(--color-button-destructive-action-border);
   --color-button-destructive-action-text: #fff;
   /* --border-width: 2px; */
   --color-background: #fff;
@@ -531,9 +473,7 @@ a {
   width: fit-content;
   cursor: pointer;
   --color-button-border: var(--color-button-destructive-action-border);
-  --color-button-background: var(
-      --color-button-destructive-action-background
-  );
+  --color-button-background: var(--color-button-destructive-action-background);
   --color-button-text: var(--color-button-destructive-action-text);
 }
 .button-destructive-action:not(.high-contrast .button-destructive-action):hover {
@@ -641,6 +581,13 @@ a {
   color: var(--color-foreground);
   background-color: var(--color-background);
   font-size: var(--font-size-body);
+}
+
+input,
+button,
+textarea {
+  font-size: inherit;
+  font-family: inherit;
 }
 
 /* blazor stuff, recommend not touching */

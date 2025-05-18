@@ -99,7 +99,8 @@
                 }
 
                 <div class=round-button-container>
-                    <RoundButton IconPath="/icon/bx-like.svg" Count=@post.Likes.Count Active=@(likedPosts.ContainsKey(post.PostId) && likedPosts[post.PostId]) OnClick="() => OnLikeButtonClick(post)" />
+                    <RoundButton IconPath="/icon/bx-like.svg" ActiveIconPath="/icon/bxs-like.svg" Count=@post.Likes.Count
+                    Active=@(likedPosts.ContainsKey(post.PostId) && likedPosts[post.PostId]) OnClick="() => OnLikeButtonClick(post)" />
                     <button class="round-button"><div class="icon-mask" style='mask-image: url("/icon/bx-share-alt.svg");'></div>0</button> @* TODO *@
                     <button class="round-button"><div class="icon-mask" style='mask-image: url("/icon/bx-reply.svg");'></div>@post.Comments</button>
                 </div>
