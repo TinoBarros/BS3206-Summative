@@ -7,7 +7,7 @@
 @using Microsoft.EntityFrameworkCore
 @using Data
 @attribute [Authorize]
-@inject ILogger<Account> Logger
+@inject ILogger<Profile> Logger
 @inject NavigationManager NavigationManager
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IHttpClientFactory HttpClientFactory
@@ -36,7 +36,9 @@
     </div>
 
     <InputFile OnChange="HandleImageUpload" multiple accept="image/*" />
-    <button class="button-optional-action" style="width: auto;" @onclick="TogglePreview">Preview</button>
+    <div class="flex-vertical pad-top">
+        <button class="button-optional-action" style="width: auto;" @onclick="TogglePreview">Preview</button>
+    </div>
     <button class="button-suggested-action" style="width: auto;" @onclick="SubmitPost">Share</button>
 </div>
 

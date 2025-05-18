@@ -18,7 +18,7 @@
 
         @if (isAuthPage)
         {
-            <main>
+            <main class="pad-top">
                 @Body
             </main>
         }
@@ -41,7 +41,7 @@
                             <span class="nav-icon">👥</span>
                             Following
                         </a>
-                        <a href="/account" class="nav-item @GetActiveClass("/account")">
+                        <a href="/profile" class="nav-item @GetActiveClass("/profile")">
                             <span class="nav-icon">👤</span>
                             Profile
                         </a>
@@ -72,7 +72,7 @@
                             <a href="/following" class="nav-item @GetActiveClass("/following")">
                                 <span class="nav-icon">👥</span>
                             </a>
-                            <a href="/account" class="nav-item @GetActiveClass("/account")">
+                            <a href="/profile" class="nav-item @GetActiveClass("/profile")">
                                 <span class="nav-icon">👤</span>
                             </a>
                             <a href="/settings" class="nav-item @GetActiveClass("/settings")">

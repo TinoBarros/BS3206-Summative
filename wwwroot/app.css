@@ -405,6 +405,10 @@ a {
   padding: var(--border-padding);
 }
 
+.pad-top {
+  padding-top: 20px;
+}
+
 .no-gap {
   gap: 0;
 }
