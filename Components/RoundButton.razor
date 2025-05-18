@@ -1,0 +1,25 @@
+@inherits ComponentBase
+@rendermode InteractiveServer
+
+<button @onclick=onclick class="round-button @(Active ? "active-round-button" : "")">
+    <div class="icon-mask" style='mask-image: url("@IconPath");'></div>@Count
+</button>
+
+@code {
+    [Parameter]
+    public required bool Active { get; set; }
+
+    [Parameter]
+    public required int Count { get; set; }
+
+    [Parameter]
+    public required string IconPath { get; set; }
+
+    [Parameter]
+    public EventCallback OnClick { get; set; }
+    async Task onclick()
+    {
+        await OnClick.InvokeAsync();
+    }
+
+}

@@ -75,12 +75,12 @@ publish/
 *.pubxml
 *.azurePubxml
 
-# NuGet Packages 
+# NuGet Packages
 nuget.config
 packages/
 !packages/repositories.config
 
-# NPM Packages 
+# NPM Packages
 node_modules
 .npmrc
 
@@ -136,3 +136,6 @@ $RECYCLE.BIN/
 .DS_Store
 
 _NCrunch*
+
+*.sln
+.vscode

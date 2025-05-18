@@ -6,139 +6,45 @@
 
 <PageTitle>Register</PageTitle>
 
-<div class="auth-container">
-    <h3>Register</h3>
-    
-    @if (!string.IsNullOrEmpty(errorMessage))
-    {
-        <div class="error-message">@errorMessage</div>
-    }
+<div class="flex-horizontal center expand">
+    <div class="subtle-container" style="width: 350px;">
+        <h1 class="center-text">Register</h1>
+        
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="font-error center-text">@errorMessage</div>
+        }
 
-    <form @onsubmit:preventDefault @onsubmit="HandleRegister">
-        <div class="form-field">
+        <form class="flex-vertical"@onsubmit:preventDefault @onsubmit="HandleRegister">
             <label>Name</label>
-            <input type="text" class="input-field" @bind="name" @bind:event="oninput" required />
+            <input type="text" class="input-single-line fill-width" @bind="name" @bind:event="oninput" required />
             @if (!string.IsNullOrEmpty(nameError))
             {
-                <div class="field-error">@nameError</div>
+                <div class="font-error center-text">@nameError</div>
             }
-        </div>
         
-        <div class="form-field">
             <label>Email</label>
-            <input type="email" class="input-field" @bind="email" @bind:event="oninput" required />
+            <input type="email" class="input-single-line fill-width" @bind="email" @bind:event="oninput" required />
             @if (!string.IsNullOrEmpty(emailError))
             {
-                <div class="field-error">@emailError</div>
+                <div class="font-error center-text">@emailError</div>
             }
-        </div>
         
-        <div class="form-field">
             <label>Password</label>
-            <input type="password" class="input-field" @bind="password" @bind:event="oninput" required />
+            <input type="password" class="input-single-line fill-width" @bind="password" @bind:event="oninput" required />
             @if (!string.IsNullOrEmpty(passwordError))
             {
-                <div class="field-error">@passwordError</div>
+                <div class="font-error center-text">@passwordError</div>
             }
-        </div>
-        
-        <button type="submit" class="submit-button">Register</button>
-    </form>
+            
+            <button type="submit" class="button-suggested-action fill-width" style="margin-top: 15px;">Register</button>
+        </form>
 
-    <div class="auth-footer">
-        <a href="/login">Already have an account? Login here</a>
+        <a class="center-text" href="/login">Already have an account? Login here</a>
     </div>
 </div>
 
-<style>
-    .auth-container {
-        background-color: #333;
-        border-radius: 10px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        color: white;
-        max-width: 400px;
-        margin: 40px auto;
-        padding: 30px;
-    }
-    
-    h3 {
-        text-align: center;
-        margin-bottom: 24px;
-        font-size: 24px;
-        font-weight: 500;
-    }
-    
-    .error-message {
-        color: var(--color-error-foreground);
-        margin-bottom: 10px;
-    }
-    
-    .form-field {
-        margin-bottom: 16px;
-    }
-    
-    .field-error {
-        color: var(--color-error-foreground);
-        font-size: 0.875em;
-        margin-top: 4px;
-    }
-    
-    label {
-        display: block;
-        font-size: 1rem;
-        margin-bottom: 8px;
-        color: #f0f0f0;
-    }
-    
-    .input-field {
-        display: block;
-        width: 100%;
-        box-sizing: border-box;
-        padding: 15px;
-        font-size: 16px;
-        background-color: rgba(255, 255, 255, 0.07);
-        color: white;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 6px;
-        transition: border-color 0.2s;
-    }
-    
-    .input-field:focus {
-        outline: none;
-        border-color: #4a8fe7;
-    }
-    
-    .submit-button {
-        background-color: #4a8fe7;
-        color: white;
-        border: none;
-        padding: 15px 16px;
-        border-radius: 6px;
-        font-size: 16px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-        width: 100%;
-        margin-top: 10px;
-    }
-    
-    .submit-button:hover {
-        background-color: #3a7bcf;
-    }
-    
-    .auth-footer {
-        text-align: center;
-        margin-top: 18px;
-    }
-    
-    .auth-footer a {
-        color: #fff;
-        text-decoration: none;
-    }
-    
-    .auth-footer a:hover {
-        text-decoration: underline;
-    }
-</style>
+<style</style>
 
 @code {
     private string name = string.Empty;

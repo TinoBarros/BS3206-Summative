@@ -10,7 +10,7 @@ public class Session
     /// This is updated by a Javascript event handler in MainLayout whenever a
     /// relevant media query value is updated.
     /// </summary>
-    public ThemeChoice SystemTheme = ThemeChoice.Light;
+    public ThemeChoice? SystemTheme = null;
 
     public enum ThemeChoice
     {
@@ -33,6 +33,10 @@ public class Session
 
     public string ThemeClasses()
     {
-        return ThemeChoiceToClasses(this.Theme ?? this.SystemTheme);
+        if (this.SystemTheme != null) {
+            return ThemeChoiceToClasses((ThemeChoice)(Theme ?? SystemTheme));
+        } else {
+            return "";
+        }
     }
 }
