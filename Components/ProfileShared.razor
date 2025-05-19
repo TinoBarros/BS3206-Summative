@@ -33,7 +33,7 @@
                     <button class="button-suggested-action">Share Profile</button>
                 </div>
             }
-            @if (Session!.CurrentUser != null && User.UserId != Session!.CurrentUser.UserId)
+            @if (CanFollow && Session!.CurrentUser != null && User.UserId != Session!.CurrentUser.UserId)
             {
                 @if (IsFollowing())
                 {
@@ -115,6 +115,9 @@
 
     [Parameter]
     public required bool CanEdit { get; set; } = false;
+
+    [Parameter]
+    public required bool CanFollow { get; set; } = true;
 
     private bool showEditProfile = false;
 
@@ -214,6 +217,14 @@
             FollowedUserId = User.UserId,
             FollowedUser = User,
         });
+
+        dbContext.Add(new Notification {
+            SenderId = Session!.CurrentUser!.UserId,
+            ReceiverId = User.UserId,
+            Text = $"{Session!.CurrentUser!.DisplayName} followed you",
+            Path = $"/User/{Session!.CurrentUser!.UserId}"
+        });
+
         dbContext.SaveChanges();
     }
 

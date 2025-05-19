@@ -335,6 +335,13 @@ a {
   color: inherit;
 }
 
+.swap-underline-hover {
+  text-decoration: none;
+}
+.swap-underline-hover:hover {
+  text-decoration: underline;
+}
+
 .site-header {
   display: flex;
   flex-direction: column;

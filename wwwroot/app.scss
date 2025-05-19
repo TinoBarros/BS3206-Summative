@@ -188,6 +188,14 @@ a {
     color: inherit;
 }
 
+.swap-underline-hover {
+    text-decoration: none;
+
+    &:hover {
+        text-decoration: underline;
+    }
+}
+
 .site-header {
     display: flex;
     flex-direction: column;

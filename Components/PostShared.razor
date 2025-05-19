@@ -27,8 +27,8 @@
             }
             else
             {
-                <a href="/user/@Post.UserId">@Post.User!.DisplayName</a>
-                <a href="/post/@Post.PostId" class="font-small">@Post.Timestamp.ToString("MM/dd/yyyy HH:mm")</a>
+                <a href="/user/@Post.UserId" class="swap-underline-hover">@Post.User!.DisplayName</a>
+                <a href="/post/@Post.PostId" class="font-small swap-underline-hover">@Post.Timestamp.ToString("MM/dd/yyyy HH:mm")</a>
             }
         </div>
     </div>
@@ -83,51 +83,6 @@
             }
         </div>
     }
-
-    @* <div class="flex-horizontal">
-        <input class="input-single-line fill-width grow" @bind="commentTexts[Post.PostId]"
-            placeholder="Add a comment..." maxlength="100" />
-        <button class="button-suggested-action shrink" @onclick="@(() => AddComment(Post.PostId))">Post</button>
-    </div>
-
-    <div class="flex-vertical">
-        @if (CommentsByPostId.TryGetValue(Post.PostId, out var comments))
-        {
-            <p>Comments</p>
-            @foreach (var comment in comments)
-            {
-                <div class="flex-horizontal">
-                    <div class="flex-vertical">
-                        @if (comment.User?.ProfileImage != null)
-                        {
-                            var profileImgBase64 = $"data:image/png;base64,{Convert.ToBase64String(comment.User.ProfileImage)}";
-                            <img src="@profileImgBase64" alt="User profile" class="comment-avatar" />
-                        }
-                        else
-                        {
-                            <div class="avatar-placeholder"></div>
-                        }
-                    </div>
-                    <div class="flex-vertical">
-                        <div class="flex-horizontal">
-                            <div class="comment-header">
-                                <strong>@comment.User?.DisplayName</strong><br />
-                            </div>
-                            <span class="timestamp">@comment.Timestamp.ToString("MM/dd/yyyy HH:mm")</span>
-                        </div>
-                        <div class="comment-text">@comment.Description</div>
-                    </div>
-                    @if (CanDeletePost(comment))
-                    {
-                        <div class="flex-horizontal flex-end grow">
-                            <button class="button-destructive-action flex-end" style="height: fit-content;"
-                                @onclick="@(() => ConfirmDelete(comment.PostId))">Delete</button>
-                        </div>
-                    }
-                </div>
-            }
-        }
-    </div> *@
 </article>
 }
 
@@ -226,7 +181,15 @@
                 UserId = CurrentUser.UserId
             };
             dbContext.Likes.Add(like);
+
+            await dbContext.AddAsync(new Notification {
+                SenderId = CurrentUser!.UserId,
+                ReceiverId = Post.User.UserId,
+                Text = $"{CurrentUser!.DisplayName} liked your post",
+                Path = $"/post/{Post.PostId}"
+            });
         }
+
 
         await dbContext.SaveChangesAsync();
 
@@ -260,6 +223,13 @@
                 UserId = CurrentUser.UserId
             };
             dbContext.Share.Add(share);
+
+            await dbContext.AddAsync(new Notification {
+                SenderId = CurrentUser!.UserId,
+                ReceiverId = Post.User.UserId,
+                Text = $"{CurrentUser!.DisplayName} shared your post",
+                Path = $"/post/{Post.PostId}"
+            });
         }
 
         await dbContext.SaveChangesAsync();
@@ -339,6 +309,8 @@
     {
         if (IsPreview)
             return;
+        
+        dbContext.SaveChanges();
         NavigationManager.NavigateTo($"/post/{Post.PostId}", true);
     }
 }

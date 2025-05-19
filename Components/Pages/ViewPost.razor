@@ -106,6 +106,14 @@ else
             ParentPostId = PostId,
         };
         dbContext.Posts.Add(comment);
+
+        dbContext.Add(new Notification {
+            SenderId = Session!.CurrentUser!.UserId,
+            ReceiverId = Post.UserId,
+            Text = $"{Session!.CurrentUser!.DisplayName} replied to your post",
+            Path = $"/post/{comment.PostId}"
+        });
+
         await dbContext.SaveChangesAsync();
         await OnInitializedAsync();
     }

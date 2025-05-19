@@ -63,7 +63,11 @@ public class Session
             return;
         }
 
-        var currentUser = await dbContext.Users.Where(u => u.Email == userEmail).FirstOrDefaultAsync();
+        var currentUser = await dbContext.Users
+            .Where(u => u.Email == userEmail)
+            .Include(u => u.Follows)
+            .Include(u => u.Followers)
+            .FirstOrDefaultAsync();
         if (currentUser == null)
             return;
         else

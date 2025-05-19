@@ -14,6 +14,7 @@ namespace Data
         public DbSet<Like> Likes { get; set; }
         public DbSet<Share> Share { get; set; }
         public DbSet<Follow> Follow { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
         public DbSet<Location> Locations { get; set; }
         public DbSet<LocationInteraction> LocationInteractions { get; set; }
 
@@ -65,8 +66,18 @@ namespace Data
             followBuilder
                 .HasOne(f => f.FollowedUser)
                 .WithMany(u => u.Followers)
-                .HasForeignKey(u => u.FollowedUserId)
+                .HasForeignKey(f => f.FollowedUserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            var notificationBuilder = modelBuilder.Entity<Notification>();
+            notificationBuilder
+                .HasOne(n => n.Sender)
+                .WithMany()
+                .HasForeignKey(n => n.SenderId);
+            notificationBuilder
+                .HasOne(n => n.Receiver)
+                .WithMany()
+                .HasForeignKey(n => n.ReceiverId);
         }
     }
 }

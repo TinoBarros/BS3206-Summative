@@ -1,30 +1,62 @@
 @page "/following"
 @using Microsoft.EntityFrameworkCore
-@inject Data.AppDbContext DbContext
-@inject NavigationManager NavigationManager
 @rendermode InteractiveServer
+
+@inject AppDbContext dbContext
+@inject AuthenticationStateProvider authStateProvider
+@inject NavigationManager NavigationManager
+
 
 <PageTitle>Following</PageTitle>
 
 <h1>People You Follow</h1>
 <div class="flex-horizontal pad">
-    <input type="text" placeholder="Search people..." class="input-single-line fill-width grow" />
-    <button class="button-suggested-action">Search</button>
+    <input @bind=SearchQuery type="text" placeholder="Search people..." class="input-single-line fill-width grow" />
+    <button @onclick=GetUsers class="button-suggested-action">Search</button>
 </div>
 
-<div class="subtle-container">
-    <div class="flex-horizontal">
-        <div class="user-avatar">
-            <img src="https://via.placeholder.com/100" alt="User" />
-        </div>
-        <div class="flex-vertical center grow">
-            <p>User Name</p>
-            <p class="font-username">@("@")johndoe</p>
-        </div>
-        <div class="flex-vertical center">
-            <button class="button-suggested-action">Follow</button>
-            @* <button class="button-destructive-action">Unfollow</button> *@
-        </div>
-    </div>
-</div>
-<!-- Add more user cards as needed -->
+@if (Users.Any())
+{
+    @foreach (var user in Users)
+    {
+        <a class="swap-underline-hover" href="/user/@(user.UserId)">
+            <ProfileShared User=user CanFollow=false />
+        </a>
+    }
+}
+else
+{
+    <p class="center-text">No users found :(</p>
+}
+
+
+@code {
+    [CascadingParameter]
+    public Session? Session { get; set; }
+
+    private List<User> Users = [];
+    private string SearchQuery = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Session!.TrySetCurrentUser(authStateProvider, dbContext);
+        await GetUsers();
+    }
+
+    private async Task GetUsers()
+    {
+        if (SearchQuery == "")
+        {
+            Users = Session!.CurrentUser!.Follows
+                .Select(f => f.FollowedUser)
+                .ToList();
+        } else {
+            Users = await dbContext.Users
+                .Where(u => u.DisplayName.Contains(SearchQuery))
+                .Include(u => u.Follows)
+                .Include(u => u.Followers)
+                .ToListAsync();
+        }
+        StateHasChanged();
+    }
+}
