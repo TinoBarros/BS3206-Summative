@@ -1,0 +1,120 @@
+@inherits ComponentBase
+@rendermode InteractiveServer
+@page "/post/{PostId:guid}"
+
+@using Microsoft.EntityFrameworkCore
+
+@inject AppDbContext dbContext
+@inject AuthenticationStateProvider authStateProvider
+@inject NavigationManager NavigationManager
+
+<PageTitle>View Post</PageTitle>
+
+@if (Post == null)
+{
+    <p class="center-text">Post not found :(</p>
+}
+else
+{
+    @if (Post.ParentPost != null)
+    {
+        @if (Post.ParentPost.ParentPost != null)
+        {
+            <a href="/post/@(Post.ParentPost.ParentPost.PostId)" class="center-text">View earlier post in chain...</a>
+        }
+        <div class="flex-vertical pad">
+            <PostShared CurrentUser=Session?.CurrentUser Post=Post.ParentPost />
+        </div>
+    }
+    <PostShared CurrentUser=Session?.CurrentUser Post=Post />
+    @if (Session!.CurrentUser != null)
+    {
+        <div class="flex-horizontal">
+            <input class="input-single-line fill-width grow" @bind="commentText"
+                placeholder="Add a comment..." maxlength="100" />
+            <button class="button-suggested-action shrink" @onclick=PostComment>Post</button>
+        </div>
+    }
+    @if (Replies != null && Replies.Any())
+    {
+        <p>Comments</p>
+        <div class="flex-vertical pad">
+            @foreach (var reply in Replies)
+            {
+                <PostShared CurrentUser=Session?.CurrentUser Post=reply />
+            }
+        </div>
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private Session? Session { get; set; }
+
+    [Parameter]
+    public required Guid PostId { get; set; }
+
+    public Post? Post { get; set; }
+
+    public List<Post>? Replies { get; set; }
+
+    private string commentText = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        Post = await dbContext.Posts
+        .Where(p => p.PostId == PostId)
+        .Include(p => p.User)
+        .Include(p => p.Images)
+        .Include(p => p.Likes)
+        .Include(p => p.Shares)
+        .Include(p => p.ParentPost)
+        .FirstOrDefaultAsync();
+
+        if (Post?.ParentPost != null) {
+            await dbContext.Posts
+            .Where(p => p.PostId == Post.ParentPost!.ParentPostId)
+            .Include(p => p.ParentPost)
+            .FirstOrDefaultAsync();
+        }
+
+        Replies = await dbContext.Posts
+        .Where(p => p.ParentPostId == PostId)
+        .Include(p => p.User)
+        .Include(p => p.Images)
+        .Include(p => p.Likes)
+        .Include(p => p.Shares)
+        .Include(p => p.ParentPost)
+        .OrderByDescending(p => p.Likes.Count)
+        .ToListAsync();
+
+        await Session!.TrySetCurrentUser(authStateProvider, dbContext);
+    }
+
+    // hard reload when URL parameter changes
+    protected override async Task OnParametersSetAsync() => await OnInitializedAsync();
+
+    private async Task PostComment()
+    {
+        var comment = new Data.Post
+        {
+            User = Session!.CurrentUser!,
+            UserId = Session!.CurrentUser!.UserId,
+            Subject = "Re: " + Post!.Subject,
+            Description = commentText,
+            Timestamp = DateTime.UtcNow,
+            ParentPostId = PostId,
+        };
+        dbContext.Posts.Add(comment);
+
+        dbContext.Add(new Notification {
+            SenderId = Session!.CurrentUser!.UserId,
+            ReceiverId = Post.UserId,
+            Text = $"{Session!.CurrentUser!.DisplayName} replied to your post",
+            Path = $"/post/{comment.PostId}"
+        });
+
+        await dbContext.SaveChangesAsync();
+        await OnInitializedAsync();
+    }
+}

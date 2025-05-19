@@ -1,0 +1,65 @@
+@inherits ComponentBase
+@rendermode InteractiveServer
+@page "/user/{UserId:guid}"
+
+@using Microsoft.EntityFrameworkCore
+
+@inject AppDbContext dbContext
+@inject AuthenticationStateProvider authStateProvider
+@inject NavigationManager NavigationManager
+
+<PageTitle>View Post</PageTitle>
+
+@if (User == null)
+{
+    <p class="center-text">User not found :(</p>
+}
+else
+{
+    <ProfileShared User=User CanEdit=false />
+    <FeedShared Posts=Posts />
+}
+
+@code {
+    [CascadingParameter]
+    private Session? Session { get; set; }
+
+    [Parameter]
+    public required Guid UserId { get; set; }
+
+    public User? User { get; set; }
+
+    public List<Post>? Posts { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        User = await dbContext.Users
+        .Where(p => p.UserId == UserId)
+        .FirstOrDefaultAsync();
+
+        if (User != null)
+        {
+            Posts = await dbContext.Posts
+            // posts by the user
+            .Where(p => p.ParentPostId == null)
+            // ...or posts that they've shared
+            .Where(p => p.UserId == User.UserId
+                || dbContext.Share
+                    .Where(s => s.UserId == User.UserId)
+                    .Where(s => s.PostId == p.PostId)
+                    .Any()
+            )
+            .Include(p => p.User)
+            .Include(p => p.Images)
+            .Include(p => p.Likes)
+            .Include(p => p.Shares)
+            .OrderByDescending(p => p.Timestamp)
+            .ToListAsync();
+        }
+
+        await Session!.TrySetCurrentUser(authStateProvider, dbContext);
+    }
+
+    // hard reload when URL parameter changes
+    protected override async Task OnParametersSetAsync() => await OnInitializedAsync();
+}

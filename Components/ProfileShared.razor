@@ -1,0 +1,240 @@
+@using Microsoft.EntityFrameworkCore
+@inherits ComponentBase
+@rendermode InteractiveServer
+
+@inject ILogger<ProfileShared> Logger
+@inject AppDbContext dbContext
+@inject AuthenticationStateProvider authStateProvider
+@inject NavigationManager NavigationManager
+
+<div class="subtle-container">
+    <div class="flex-horizontal">
+        <div class="profile-avatar">
+            @if (User.ProfileImage != null)
+            {
+                <img src="data:image/jpeg;base64,@Convert.ToBase64String(User.ProfileImage)" alt="Profile" />
+            }
+            else
+            {
+                <img src="https://via.placeholder.com/150" alt="Profile" />
+            }
+        </div>
+        <div class="flex-vertical">
+            <h1>@User.DisplayName</h1>
+            @if (!string.IsNullOrEmpty(User.Location))
+            {
+                <p>📍 @User.Location</p>
+            }
+            <p>@User.Bio</p>
+            @if (CanEdit)
+            {
+                <div class="flex-horizontal">
+                    <button class="button-optional-action" @onclick="ShowEditProfile">Edit Profile</button>
+                    <button class="button-suggested-action">Share Profile</button>
+                </div>
+            }
+            @if (CanFollow && Session!.CurrentUser != null && User.UserId != Session!.CurrentUser.UserId)
+            {
+                @if (IsFollowing())
+                {
+                    <button class="button-destructive-action" @onclick=Unfollow>Unfollow</button>
+                }
+                else
+                {
+                    <button class="button-suggested-action" @onclick=Follow>Follow</button>
+                }
+            }
+        </div>
+    </div>
+
+    <div class="flex-horizontal center pad-top" style="gap: 30px;">
+        <div class="flex-vertical no-gap">
+            <strong class="center-text">@dbContext.Posts.Where(p => p.UserId == User.UserId).Count()</strong>
+            <div class="center-text">Posts</div>
+        </div>
+        <div class="flex-vertical no-gap">
+            <strong class="center-text">@dbContext.Follow.Where(p => p.UserId == User.UserId).Count()</strong>
+            <div class="center-text">Following</div>
+        </div>
+        <div class="flex-vertical no-gap">
+            <strong class="center-text">@dbContext.Follow.Where(p => p.FollowedUserId == User.UserId).Count()</strong>
+            <div class="center-text">Followers</div>
+        </div>
+    </div>
+</div>
+
+@if (showEditProfile)
+{
+    <div class="modal-overlay" @onclick="HideEditProfile">
+        <div class="modal subtle-container" @onclick:stopPropagation="true">
+            <div class="flex-horizontal">
+                <h1>Edit Profile</h1>
+                <div class="flex-horizontal grow flex-end">
+                    <button class="button-suggested-action" style="font-size: 24px;" @onclick="HideEditProfile">×</button>
+                </div>
+            </div>
+            <label for="fileupload">Profile Picture</label>
+            <InputFile id="fileupload" OnChange="HandleImageUpload" accept=".jpg,.jpeg,.png" />
+            @if (imagePreviewUrl != null)
+            {
+                <img src="@imagePreviewUrl" alt="Preview" class="image-preview" />
+            }
+            else if (User.ProfileImage != null)
+            {
+                <img src="data:image/jpeg;base64,@Convert.ToBase64String(User.ProfileImage)" alt="Current"
+                    class="image-preview" />
+            }
+
+            <label for="name">Name</label>
+            <input id="name" type="text" class="input-single-line fill-width" @bind="editName" />
+
+            <label for="location">Location</label>
+            <input id="location" type="text" class="input-single-line fill-width" @bind="editLocation"
+                placeholder="Enter your location" />
+
+            <label for="bio">Bio</label>
+            <textarea id="bio" class="input-multi-line fill-width" @bind="editBio"></textarea>
+
+            <label for="email">Email</label>
+            <input id="email" type="email" class="input-single-line fill-width" @bind="editEmail" />
+
+            <div class="flex-horizontal pad-top">
+                <button class="button-optional-action" @onclick="HideEditProfile">Cancel</button>
+                <button class="button-suggested-action" @onclick="SaveProfile">Save Changes</button>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [CascadingParameter]
+    private Session? Session { get; set; }
+
+    [Parameter]
+    public required User User { get; set; }
+
+    [Parameter]
+    public required bool CanEdit { get; set; } = false;
+
+    [Parameter]
+    public required bool CanFollow { get; set; } = true;
+
+    private bool showEditProfile = false;
+
+    // Edit form fields
+    private string editName = string.Empty;
+    private string editEmail = string.Empty;
+    private string editLocation = string.Empty;
+    private string editBio = string.Empty;
+    private string? imagePreviewUrl;
+    private byte[]? newProfileImage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Session!.TrySetCurrentUser(authStateProvider, dbContext);
+    }
+
+    private void ShowEditProfile()
+    {
+        editName = User?.DisplayName ?? string.Empty;
+        editEmail = User?.Email ?? string.Empty;
+        editLocation = User?.Location ?? string.Empty;
+        editBio = User?.Bio ?? string.Empty;
+        imagePreviewUrl = null;
+        newProfileImage = null;
+        showEditProfile = true;
+    }
+
+    private void HideEditProfile()
+    {
+        showEditProfile = false;
+    }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file != null)
+            {
+                using var stream = new MemoryStream();
+                await file.OpenReadStream(maxAllowedSize: 1024 * 1024).CopyToAsync(stream); // Max 1MB
+                newProfileImage = stream.ToArray();
+
+                imagePreviewUrl = $"data:image/jpeg;base64,{Convert.ToBase64String(newProfileImage)}";
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading image");
+        }
+    }
+
+    private async Task SaveProfile()
+    {
+        try
+        {
+            if (User != null)
+            {
+                User.DisplayName = editName;
+                User.Email = editEmail;
+                User.Location = editLocation;
+                User.Bio = editBio;
+                if (newProfileImage != null)
+                {
+                    User.ProfileImage = newProfileImage;
+                }
+
+                await dbContext.SaveChangesAsync();
+                Logger.LogInformation("Profile updated successfully");
+                showEditProfile = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating profile");
+        }
+    }
+
+    private Follow? GetFollow()
+    {
+        return dbContext.Follow
+        .Where(f => f.UserId == Session!.CurrentUser!.UserId && f.FollowedUserId == User.UserId)
+        .FirstOrDefault();
+    }
+
+    private bool IsFollowing()
+    {
+        return GetFollow() != null;
+    }
+
+    private void Follow()
+    {
+        dbContext.Add(new Data.Follow
+        {
+            UserId = Session!.CurrentUser!.UserId,
+            User = Session!.CurrentUser!,
+            FollowedUserId = User.UserId,
+            FollowedUser = User,
+        });
+
+        dbContext.Add(new Notification {
+            SenderId = Session!.CurrentUser!.UserId,
+            ReceiverId = User.UserId,
+            Text = $"{Session!.CurrentUser!.DisplayName} followed you",
+            Path = $"/User/{Session!.CurrentUser!.UserId}"
+        });
+
+        dbContext.SaveChanges();
+    }
+
+    private void Unfollow()
+    {
+        var follow = GetFollow();
+        if (follow != null) {
+            dbContext.Remove(follow);
+            dbContext.SaveChanges();
+            @* StateHasChanged(); *@
+        }
+    }
+}

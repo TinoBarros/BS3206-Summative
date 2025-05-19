@@ -1,0 +1,62 @@
+@inherits ComponentBase
+@rendermode InteractiveServer
+@page "/notifications"
+@using Microsoft.EntityFrameworkCore
+
+@inject AppDbContext dbContext
+@inject AuthenticationStateProvider authStateProvider
+
+<PageTitle>Notifications</PageTitle>
+
+<h1>Notifications</h1>
+
+@if (notifications.Any())
+{
+    @foreach (var notification in notifications)
+    {
+        <article class="subtle-container flex-horizontal">
+            <a href=@notification.Path class="flex-horizontal grow swap-underline-hover">
+                <div class="profile-avatar">
+                    @if (notification.Sender!.ProfileImage != null)
+                    {
+                        <img src="data:image/jpeg;base64,@Convert.ToBase64String(notification.Sender.ProfileImage)" alt="Profile" />
+                    }
+                </div>
+                <p class="grow fill-width">@notification.Text</p>
+            </a>
+            <div class="flex-vertical center">
+                <button class="button-destructive-action" @onclick=@(() => DismissNotification(notification))>Dismiss</button>
+            </div>
+        </article>
+    }
+}
+else 
+{
+    <p class="center-text">No new notifications! Maybe <a href="/create-post">post something</a>?</p>
+}
+
+@code {
+    [CascadingParameter]
+    public Session? Session { get; set; }
+
+    private List<Notification> notifications = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Session!.TrySetCurrentUser(authStateProvider, dbContext);
+
+        notifications = await dbContext.Notifications
+            .Where(n => n.ReceiverId == Session!.CurrentUser!.UserId)
+            .Include(n => n.Sender)
+            .Include(n => n.Receiver)
+            .OrderByDescending(n => n.Timestamp)
+            .ToListAsync();
+    }
+
+    private async Task DismissNotification(Notification notification)
+    {
+        dbContext.Remove(notification);
+        await dbContext.SaveChangesAsync();
+        await OnInitializedAsync();
+    }
+}

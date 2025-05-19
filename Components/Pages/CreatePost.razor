@@ -1,0 +1,211 @@
+@page "/create-post"
+@inject AppDbContext _dbContext
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@using Microsoft.EntityFrameworkCore
+@using Data
+@attribute [Authorize]
+@inject ILogger<Profile> Logger
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
+@inject IHttpClientFactory HttpClientFactory
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<PageTitle>Create Post</PageTitle>
+
+<div class="subtle-container">
+    @if (ShowToast)
+    {
+    <div class="toast @(ToastType == "error" ? "toast-error" : "toast-success")">
+        @ToastMessage
+    </div>
+    }
+    <button class="button-optional-action fill-width" @onclick="NavigateBack">← Back</button>
+    <h1 class="center-text">Create Post</h1>
+
+    @if(previewPost != null) {
+        <label for="subject">Subject</label>
+        <input id="subject" type="text" class="input-single-line fill-width" @bind="previewPost!.Subject" maxlength="100" />
+
+        <label for="description">Description</label>
+        <textarea id="description" class="input-multi-line" maxlength="800" rows="6" @bind="previewPost!.Description" @oninput="UpdateCharacterCount"></textarea>
+        <div class="flex-horizontal flex-end">
+            <span class="font-small">@previewPost?.Description.Length / 800</span>
+        </div>
+
+        <InputFile OnChange="HandleImageUpload" multiple accept="image/*" />
+        <div class="flex-vertical pad-top">
+            <button class="button-optional-action" style="width: auto;" @onclick="TogglePreview">Preview</button>
+        </div>
+        <button class="button-suggested-action" style="width: auto;" @onclick="SubmitPost">Share</button>
+    }
+</div>
+
+
+
+@if (ShowPreview)
+    {
+    <div class="modal-backdrop" @onclick="ClosePreview">
+        <div class="modal-content" @onclick:stopPropagation>
+            <PostShared CurrentUser=loggedInUser Post=previewPost IsPreview=true />
+        </div>
+    </div>
+}
+
+@code {
+    private Data.User? loggedInUser;
+    private Data.Post? previewPost;
+    private bool ShowPreview { get; set; } = false;
+    private bool ShowToast { get; set; } = false;
+    private string ToastMessage { get; set; } = "";
+    private string ToastType { get; set; } = "success";
+    private const long MaxFileSize = 5 * 1024 * 1024; // 5MB - can be changed if needed
+    private readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
+
+    //keeps track of character count in subject
+    private void UpdateCharacterCount(ChangeEventArgs e)
+    {
+        if (previewPost != null) {
+            previewPost.Description = e.Value?.ToString() ?? "";
+        }
+    }
+
+    //toggles whether preview is selected
+    private void TogglePreview()
+    {
+        ShowPreview = !ShowPreview;
+    }
+
+    //navigates back to feed page
+    private void NavigateBack()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+
+    //closes preview window
+    private void ClosePreview()
+    {
+        ShowPreview = false;
+    }
+
+    //shows toast notification
+    private async Task ShowToastMessage(string message, string type = "success")
+    {
+        ToastMessage = message;
+        ToastType = type;
+        ShowToast = true;
+        await Task.Delay(3000);
+        ShowToast = false;
+        StateHasChanged();
+    }
+
+    //creates post in the database
+    private async Task SubmitPost()
+    {
+        if (loggedInUser == null)
+        {
+            await ShowToastMessage("You must be logged in to create a post.", "error");
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(previewPost?.Subject) || string.IsNullOrWhiteSpace(previewPost?.Description))
+        {
+            await ShowToastMessage("Subject and description cannot be empty.", "error");
+            return;
+        }
+
+        _dbContext.Posts.Add(previewPost);
+        await _dbContext.SaveChangesAsync();
+
+        previewPost = new Post {
+            UserId = loggedInUser.UserId,
+            User = loggedInUser,
+        };
+        ShowPreview = false;
+        await ShowToastMessage("Post successfully published!");
+    }
+
+    //creates PostImage
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles())
+        {
+
+            if (file.Size > MaxFileSize)
+            {
+                await ShowToastMessage($"File '{file.Name}' exceeds the maximum size of {MaxFileSize / (1024 * 1024)}MB.", "error");
+                continue;
+            }
+
+
+            var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+            if (!AllowedExtensions.Contains(extension))
+            {
+                await ShowToastMessage($"File type '{extension}' is not allowed. Allowed types are: {string.Join(", ", AllowedExtensions)}.", "error");
+                continue;
+            }
+
+            try
+            {
+                using var stream = new MemoryStream();
+                await file.OpenReadStream(MaxFileSize).CopyToAsync(stream);
+
+                previewPost?.Images.Add(new PostImage
+                {
+                    ImageData = stream.ToArray(),
+                    ContentType = file.ContentType
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to process file upload.");
+                await ShowToastMessage($"An error occurred while uploading '{file.Name}'.", "error");
+            }
+        }
+    }
+
+
+    //loads user data
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserData();
+    }
+    private async Task LoadUserData()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+
+
+            var userEmail = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                Logger.LogWarning("Unable to determine current user email from auth state");
+                return;
+            }
+
+            Logger.LogInformation("Loading profile for user with email: {Email}", userEmail);
+            loggedInUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+            if (loggedInUser == null)
+            {
+                Logger.LogWarning("No user found with email: {Email}", userEmail);
+            }
+            else
+            {
+                Logger.LogInformation("Successfully loaded user profile for: {Name}", loggedInUser.DisplayName);
+                previewPost = new Post {
+                    UserId = loggedInUser.UserId,
+                    User = loggedInUser,
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading user details");
+        }
+    }
+}

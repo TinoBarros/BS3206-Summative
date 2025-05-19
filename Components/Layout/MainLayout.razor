@@ -18,7 +18,7 @@
 
         @if (isAuthPage)
         {
-            <main>
+            <main class="pad-top">
                 @Body
             </main>
         }
@@ -26,7 +26,7 @@
         {
             <AuthorizeView>
                 <Authorized>
-                    <nav class="sidebar-wrapper flex-vertical">
+                    <nav class="desktop-sidebar flex-vertical">
                         <h1 class="app-title">HealthApp</h1>
 
                         <a href="/feed" class="nav-item @GetActiveClass("/feed")">
@@ -37,11 +37,15 @@
                             <span class="nav-icon">📍</span>
                             Locations
                         </a>
+                        <a href="/notifications" class="nav-item @GetActiveClass("/notifications")">
+                            <span class="nav-icon">❗</span>
+                            Notifications
+                        </a>
                         <a href="/following" class="nav-item @GetActiveClass("/following")">
                             <span class="nav-icon">👥</span>
                             Following
                         </a>
-                        <a href="/account" class="nav-item @GetActiveClass("/account")">
+                        <a href="/profile" class="nav-item @GetActiveClass("/profile")">
                             <span class="nav-icon">👤</span>
                             Profile
                         </a>
@@ -58,14 +62,43 @@
                                 </button>
                             </form>
                         </div>
-                        </nav>
+                    </nav>
 
-                    <main class="flex-vertical">
+                    <nav class="mobile-sidebar flex-horizontal">
+                        <h1 class="app-title">HealthApp</h1>
+                        <div class="mobile-sidebar-icons flex-horizontal">
+                            <a href="/feed" class="nav-item @GetActiveClass("/feed")">
+                                <span class="nav-icon">🏠</span>
+                            </a>
+                            <a href="/locations" class="nav-item @GetActiveClass("/locations")">
+                                <span class="nav-icon">📍</span>
+                            </a>
+                            <a href="/notifications" class="nav-item @GetActiveClass("/notifications")">
+                                <span class="nav-icon">❗</span>
+                            </a>
+                            <a href="/following" class="nav-item @GetActiveClass("/following")">
+                                <span class="nav-icon">👥</span>
+                            </a>
+                            <a href="/profile" class="nav-item @GetActiveClass("/profile")">
+                                <span class="nav-icon">👤</span>
+                            </a>
+                            <a href="/settings" class="nav-item @GetActiveClass("/settings")">
+                                <span class="nav-icon">⚙️</span>
+                            </a>
+                            <form method="post" action="/api/auth/logout" style="display: contents;">
+                                <button type="submit" class="nav-item logout-button">
+                                    <span class="nav-icon">🚪</span>
+                                </button>
+                            </form>
+                        </div>
+                    </nav>
+
+                    <main class="flex-vertical pad">
                         @Body
                     </main>
                 </Authorized>
                 <NotAuthorized>
-                    <main class="flex-vertical">
+                    <main class="flex-vertical pad">
                         @Body
                     </main>
                 </NotAuthorized>

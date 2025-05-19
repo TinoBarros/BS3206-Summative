@@ -1,0 +1,34 @@
+@using Microsoft.EntityFrameworkCore
+@inherits ComponentBase
+@rendermode InteractiveServer
+
+@inject AuthenticationStateProvider authStateProvider
+@inject AppDbContext dbContext
+
+@if (Posts == null || !Posts.Any())
+{
+    <div class="no-posts-message">
+        <i class="fas fa-ban" style="font-size: 2rem; color: #ff6347;"></i>
+        <p>No posts yet. Follow users to see their posts!</p>
+    </div>
+}
+else
+{
+    @foreach (var post in Posts)
+    {
+        <PostShared Post=post CurrentUser=Session!.CurrentUser />
+    }
+}
+
+@code {
+    [CascadingParameter]
+    private Session? Session {get; set;}
+
+    [Parameter]
+    public required List<Post> Posts {get; set;}
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Session!.TrySetCurrentUser(authStateProvider, dbContext);
+    }
+}

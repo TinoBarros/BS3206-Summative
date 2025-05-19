@@ -1,0 +1,120 @@
+@page "/profile"
+@using Microsoft.EntityFrameworkCore
+@using System.IO
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.Cookies
+@attribute [Authorize]
+@inject Data.AuthService AuthService
+@inject NavigationManager NavigationManager
+@inject ILogger<Profile> Logger
+@inject Data.AppDbContext DbContext
+@inject AuthenticationStateProvider AuthStateProvider
+@rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Profile</PageTitle>
+
+@if (isLoading)
+{
+    <p>Loading profile...</p>
+}
+else if (currentUser == null)
+{
+    <p>Not logged in?</p>
+}
+else
+{
+    <ProfileShared User=currentUser CanEdit=true />
+}
+
+@code {
+    private Data.User? currentUser;
+    private bool showEditProfile = false;
+    private bool isLoading = true;
+    private int authRetryCount = 0;
+    private const int MAX_AUTH_RETRIES = 3;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("Account page initialized");
+        await CheckAuthenticationStateAsync();
+    }
+
+    private async Task CheckAuthenticationStateAsync()
+    {
+        try
+        {
+            isLoading = true;
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+
+            if (authState.User.Identity?.IsAuthenticated ?? false)
+            {
+                Logger.LogInformation("User authenticated");
+                await LoadUserData();
+            }
+            else
+            {
+                Logger.LogWarning("User not authenticated, attempt {RetryCount} of {MaxRetries}",
+                authRetryCount + 1, MAX_AUTH_RETRIES);
+
+                if (authRetryCount < MAX_AUTH_RETRIES)
+                {
+                    authRetryCount++;
+                    await Task.Delay(500); // Wait briefly before retrying
+                    await CheckAuthenticationStateAsync();
+                }
+                else
+                {
+                    Logger.LogWarning("Max authentication retries reached, redirecting to login");
+                    RedirectToLogin();
+                }
+            }
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadUserData()
+    {
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+
+            // Get the email from the ClaimTypes.Email claim
+            var userEmail = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                Logger.LogWarning("Unable to determine current user email from auth state");
+                return;
+            }
+
+            Logger.LogInformation("Loading profile for user with email: {Email}", userEmail);
+            currentUser = await DbContext.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+
+            if (currentUser == null)
+            {
+                Logger.LogWarning("No user found with email: {Email}", userEmail);
+            }
+            else
+            {
+                Logger.LogInformation("Successfully loaded user profile for: {Name}", currentUser.DisplayName);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading user details");
+        }
+    }
+
+    private void RedirectToLogin()
+    {
+        NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
+    }
+
+}

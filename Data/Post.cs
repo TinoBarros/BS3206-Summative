@@ -1,4 +1,3 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace Data
@@ -6,30 +5,19 @@ namespace Data
     public class Post
     {
         [Key]
-        public int PostId { get; set; }
-
+        public Guid PostId { get; set; }
         [Required]
-        public User? User { get; set; }
-
-        public int? UserId { get; set; }
-
+        public required User User { get; set; }
+        public required Guid UserId { get; set; }
         [Required]
         public string Subject { get; set; } = string.Empty;
-
         public string Description { get; set; } = string.Empty;
-
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-
-        public ICollection<Like> Likes { get; set; } = new List<Like>();
-
-        public int Comments { get; set; } = 0;
-
-        public int? ParentPostId { get; set; }
-
+        public ICollection<Like> Likes { get; set; } = [];
+        public ICollection<Share> Shares { get; set; } = [];
+        public Guid? ParentPostId { get; set; }
         public Post? ParentPost { get; set; }
-
-        public ICollection<Post> CommentsList { get; set; } = new List<Post>();
-        public List<PostImage> Images { get; set; } = new();
-
+        public ICollection<Post> Comments { get; set; } = [];
+        public List<PostImage> Images { get; set; } = [];
     }
 }

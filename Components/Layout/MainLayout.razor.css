@@ -11,7 +11,7 @@
 }
 
 
-.sidebar-wrapper {
+.desktop-sidebar {
     width: 220px;
     position: fixed;
     top: 0;
@@ -20,11 +20,29 @@
     transform: translateX(-460px);
 }
 @media (max-width: 910px) {
-    .sidebar-wrapper {
+    .desktop-sidebar {
         display: none;
     }
 }
+ 
+.mobile-sidebar {
+    display: none;
+}
+@media (max-width: 910px) {
+    .mobile-sidebar {
+        display: block;
+    }
+}
 
+.mobile-sidebar-icons {
+    justify-content: space-between;
+    border-bottom: 1px solid var(--color-subtle-border);
+    
+    .nav-item {
+        width: 100%;
+    }
+}
+ 
 .app-title {
     text-align: center;
     padding: 20px 0;
@@ -34,7 +52,8 @@
 .nav-item {
     display: flex;
     align-items: center;
-    padding: 12px 20px;
+    justify-content: center;
+    padding: 12px 0;
     text-decoration: none;
     gap: 12px;
     font-size: 1rem;

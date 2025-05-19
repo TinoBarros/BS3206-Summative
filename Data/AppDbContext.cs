@@ -12,6 +12,9 @@ namespace Data
         public DbSet<User> Users { get; set; }
         public DbSet<Post> Posts { get; set; }
         public DbSet<Like> Likes { get; set; }
+        public DbSet<Share> Share { get; set; }
+        public DbSet<Follow> Follow { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
         public DbSet<Location> Locations { get; set; }
         public DbSet<LocationInteraction> LocationInteractions { get; set; }
 
@@ -19,28 +22,62 @@ namespace Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<User>()
+            var userBuilder = modelBuilder.Entity<User>();
+            userBuilder
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
             modelBuilder.Entity<Post>()
                 .HasOne(p => p.ParentPost)
-                .WithMany(p => p.CommentsList)
+                .WithMany(p => p.Comments)
                 .HasForeignKey(p => p.ParentPostId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-             modelBuilder.Entity<Like>()
-            .HasOne(l => l.User)
-            .WithMany() // Assuming a User can have many Likes
-            .HasForeignKey(l => l.UserId)
-            .OnDelete(DeleteBehavior.Cascade); // Or Restrict if you don't want cascading deletes
-
-            modelBuilder.Entity<Like>()
+            var likeBuilder = modelBuilder.Entity<Like>();
+            likeBuilder
+                .HasOne(l => l.User)
+                .WithMany(u => u.Likes)
+                .HasForeignKey(l => l.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            likeBuilder
                 .HasOne(l => l.Post)
-                .WithMany(p => p.Likes) // Assuming a Post can have many Likes
+                .WithMany(p => p.Likes)
                 .HasForeignKey(l => l.PostId)
-                .OnDelete(DeleteBehavior.Cascade); // Or Restrict depending on your needs
-    
+                .OnDelete(DeleteBehavior.Cascade);
+
+            var shareBuilder = modelBuilder.Entity<Share>();
+            shareBuilder
+                .HasOne(s => s.User)
+                .WithMany(u => u.Shares)
+                .HasForeignKey(s => s.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            shareBuilder
+                .HasOne(s => s.Post)
+                .WithMany(p => p.Shares)
+                .HasForeignKey(s => s.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            var followBuilder = modelBuilder.Entity<Follow>();
+            followBuilder
+                .HasOne(f => f.User)
+                .WithMany(u => u.Follows)
+                .HasForeignKey(u => u.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            followBuilder
+                .HasOne(f => f.FollowedUser)
+                .WithMany(u => u.Followers)
+                .HasForeignKey(f => f.FollowedUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            var notificationBuilder = modelBuilder.Entity<Notification>();
+            notificationBuilder
+                .HasOne(n => n.Sender)
+                .WithMany()
+                .HasForeignKey(n => n.SenderId);
+            notificationBuilder
+                .HasOne(n => n.Receiver)
+                .WithMany()
+                .HasForeignKey(n => n.ReceiverId);
         }
     }
 }
