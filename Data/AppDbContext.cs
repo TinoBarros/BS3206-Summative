@@ -27,7 +27,7 @@ namespace Data
 
             modelBuilder.Entity<Post>()
                 .HasOne(p => p.ParentPost)
-                .WithMany(p => p.CommentsList)
+                .WithMany(p => p.Comments)
                 .HasForeignKey(p => p.ParentPostId)
                 .OnDelete(DeleteBehavior.Cascade);
 

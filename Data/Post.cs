@@ -15,10 +15,9 @@ namespace Data
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
         public ICollection<Like> Likes { get; set; } = [];
         public ICollection<Share> Shares { get; set; } = [];
-        public int Comments { get; set; } = 0;
         public Guid? ParentPostId { get; set; }
         public Post? ParentPost { get; set; }
-        public ICollection<Post> CommentsList { get; set; } = [];
+        public ICollection<Post> Comments { get; set; } = [];
         public List<PostImage> Images { get; set; } = [];
     }
 }

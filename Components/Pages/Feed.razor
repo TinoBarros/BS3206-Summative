@@ -44,6 +44,9 @@ else
 }
 
 @code {
+    [CascadingParameter]
+    private Session? Session {get; set;}
+
     private bool isLoading = true;
     private int authRetryCount = 0;
     private const int MAX_AUTH_RETRIES = 3;
@@ -86,6 +89,7 @@ else
         if (!string.IsNullOrEmpty(email))
         {
             CurrentUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+            Session!.CurrentUser = CurrentUser;
         }
 
         Posts = await _dbContext.Posts
@@ -93,6 +97,7 @@ else
         .Include(p => p.User)
         .Include(p => p.Images)
         .Include(p => p.Likes)
+        .Include(p => p.Shares)
         .OrderByDescending(p => p.Timestamp)
         .ToListAsync();
 
@@ -223,11 +228,9 @@ else
                 Description = commentTexts[parentPostId],
                 Timestamp = DateTime.UtcNow,
                 ParentPostId = parentPostId,
-                Comments = 0
             };
 
             _dbContext.Posts.Add(comment);
-            parentPost.Comments++;
             await _dbContext.SaveChangesAsync();
             await OnInitializedAsync();
             commentTexts[parentPostId] = string.Empty;

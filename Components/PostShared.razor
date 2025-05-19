@@ -2,7 +2,8 @@
 @inherits ComponentBase
 @rendermode InteractiveServer
 
-@inject AppDbContext _dbContext
+@inject AppDbContext dbContext
+@inject NavigationManager NavigationManager
 
 @if (!deleted) {
 <article class="subtle-container">
@@ -20,7 +21,14 @@
         </div>
         <div class="flex-vertical">
             <span>@Post.User?.DisplayName</span>
-            <span class="font-small">@Post.Timestamp.ToString("MM/dd/yyyy HH:mm")</span>
+            @if (IsPreview)
+            {
+                <span class="font-small">@Post.Timestamp.ToString("MM/dd/yyyy HH:mm")</span>
+            }
+            else
+            {
+                <a href="/post/@Post.PostId" class="font-small">@Post.Timestamp.ToString("MM/dd/yyyy HH:mm")</a>
+            }
         </div>
     </div>
     @if (isEditing)
@@ -55,14 +63,11 @@
 
     <div class=round-button-container>
         <RoundButton IconPath="/icon/bx-like.svg" ActiveIconPath="/icon/bxs-like.svg" Count=@Post.Likes.Count
-            Active=@(CurrentUser.Likes.Where(l => l.PostId == Post.PostId).Any())
-            OnClick="() => OnLikeButtonClick(Post)" />
+            Active=@(isLiked()) OnClick="() => OnLikeButtonClick(Post)" />
         <RoundButton IconPath="/icon/bx-share-alt.svg" ActiveIconPath="/icon/bxs-share-alt.svg" Count=@Post.Shares.Count
-            Active=@(CurrentUser.Shares.Where(s => s.PostId == Post.PostId).Any())
-            OnClick="() => OnShareButtonClick(Post)" />
-        <button class="round-button">
-            <div class="icon-mask" style='mask-image: url("/icon/bx-reply.svg");'></div>@Post.Comments
-        </button>
+            Active=@(isShared()) OnClick="() => OnShareButtonClick(Post)" />
+        <RoundButton IconPath="/icon/bx-reply.svg" ActiveIconPath="/icon/bx-reply.svg" Count=@Post.Comments.Count
+            Active=false OnClick=OnReplyClicked />
     </div>
     @if (CanEditPost(Post) || CanDeletePost(Post))
     {
@@ -152,7 +157,7 @@
     [Parameter]
     public bool IsPreview { get; set; } = false;
     [Parameter]
-    public required Data.User CurrentUser { get; set; }
+    public Data.User? CurrentUser { get; set; }
     [Parameter]
     public required Data.Post Post { get; set; }
 
@@ -166,7 +171,7 @@
     //Checks if logged-in user is allowed to delete post (either an admin or is their own post)
     private bool CanDeletePost(Data.Post post)
     {
-        if (IsPreview)
+        if (IsPreview || CurrentUser == null)
             return false;
         if (CurrentUser.IsAdmin)
             return true;
@@ -179,20 +184,38 @@
     {
         if (IsPreview)
             return false;
+        if (CurrentUser == null)
+            return false;
         return post.User.UserId == CurrentUser.UserId;
+    }
+
+    private bool isLiked()
+    {
+        if (IsPreview || CurrentUser == null)
+            return false;
+        
+        return CurrentUser.Likes.Where(l => l.PostId == Post.PostId).Any();
+    }
+
+    private bool isShared()
+    {
+        if (IsPreview || CurrentUser == null)
+            return false;
+        
+        return CurrentUser.Shares.Where(l => l.PostId == Post.PostId).Any();
     }
 
     private async Task OnLikeButtonClick(Data.Post post)
     {
-        if (IsPreview)
+        if (IsPreview || CurrentUser == null)
             return;
 
-        var existingLike = await _dbContext.Likes
+        var existingLike = await dbContext.Likes
         .FirstOrDefaultAsync(l => l.PostId == post.PostId && l.UserId == CurrentUser.UserId);
 
         if (existingLike != null)
         {
-            _dbContext.Likes.Remove(existingLike);
+            dbContext.Likes.Remove(existingLike);
         }
         else
         {
@@ -201,12 +224,12 @@
                 PostId = post.PostId,
                 UserId = CurrentUser.UserId
             };
-            _dbContext.Likes.Add(like);
+            dbContext.Likes.Add(like);
         }
 
-        await _dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
 
-        var updatedPost = await _dbContext.Posts
+        var updatedPost = await dbContext.Posts
         .Include(p => p.Likes)
         .FirstOrDefaultAsync(p => p.PostId == post.PostId);
 
@@ -218,15 +241,15 @@
 
     private async Task OnShareButtonClick(Data.Post post)
     {
-        if (IsPreview)
+        if (IsPreview || CurrentUser == null)
             return;
 
-        var existingShare = await _dbContext.Share
+        var existingShare = await dbContext.Share
         .FirstOrDefaultAsync(s => s.PostId == post.PostId && s.UserId == CurrentUser.UserId);
 
         if (existingShare != null)
         {
-            _dbContext.Share.Remove(existingShare);
+            dbContext.Share.Remove(existingShare);
         }
         else
         {
@@ -235,12 +258,12 @@
                 PostId = post.PostId,
                 UserId = CurrentUser.UserId
             };
-            _dbContext.Share.Add(share);
+            dbContext.Share.Add(share);
         }
 
-        await _dbContext.SaveChangesAsync();
+        await dbContext.SaveChangesAsync();
 
-        var updatedPost = await _dbContext.Posts
+        var updatedPost = await dbContext.Posts
         .Include(p => p.Shares)
         .FirstOrDefaultAsync(p => p.PostId == post.PostId);
 
@@ -277,11 +300,11 @@
     //deletes post from database
     private async Task DeletePost(Guid postId)
     {
-        var postToDelete = await _dbContext.Posts.FindAsync(postId);
+        var postToDelete = await dbContext.Posts.FindAsync(postId);
         if (postToDelete != null)
         {
-            _dbContext.Posts.Remove(postToDelete);
-            await _dbContext.SaveChangesAsync();
+            dbContext.Posts.Remove(postToDelete);
+            await dbContext.SaveChangesAsync();
         }
     }
 
@@ -296,12 +319,12 @@
     //saves the edited post to the database
     private async Task SaveEdit(Guid postId)
     {
-        var post = await _dbContext.Posts.FindAsync(postId);
+        var post = await dbContext.Posts.FindAsync(postId);
         if (post != null)
         {
             post.Subject = editSubject;
             post.Description = editDescription;
-            await _dbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync();
             isEditing = false;
             // TODO event this
             @* await ShowToastMessage("Post updated successfully."); *@
@@ -309,5 +332,12 @@
         isEditing = false;
         // TODO event this
         @* await OnInitializedAsync(); *@
+    }
+
+    private void OnReplyClicked()
+    {
+        if (IsPreview)
+            return;
+        NavigationManager.NavigateTo($"/post/{Post.PostId}", true);
     }
 }

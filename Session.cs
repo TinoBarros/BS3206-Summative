@@ -1,4 +1,8 @@
 // Stores global state across all pages such as the chosen theme.
+using Data;
+using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.EntityFrameworkCore;
+
 public class Session
 {
     /// <summary> The currently chosen theme, null represents no preference (use
@@ -11,6 +15,8 @@ public class Session
     /// relevant media query value is updated.
     /// </summary>
     public ThemeChoice? SystemTheme = null;
+
+    public User? CurrentUser = null;
 
     public enum ThemeChoice
     {
@@ -33,10 +39,34 @@ public class Session
 
     public string ThemeClasses()
     {
-        if (this.SystemTheme != null) {
+        if (this.SystemTheme != null)
+        {
             return ThemeChoiceToClasses((ThemeChoice)(Theme ?? SystemTheme));
-        } else {
+        }
+        else
+        {
             return "";
         }
+    }
+
+    public async Task TrySetCurrentUser(AuthenticationStateProvider authStateProvider, AppDbContext dbContext)
+    {
+        if (CurrentUser != null)
+        {
+            return;
+        }
+
+        var authState = await authStateProvider.GetAuthenticationStateAsync();
+        var userEmail = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+        if (string.IsNullOrEmpty(userEmail))
+        {
+            return;
+        }
+
+        var currentUser = await dbContext.Users.Where(u => u.Email == userEmail).FirstOrDefaultAsync();
+        if (currentUser == null)
+            return;
+        else
+            CurrentUser = currentUser;
     }
 }
