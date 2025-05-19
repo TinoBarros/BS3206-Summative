@@ -25,48 +25,22 @@
 
 <div class="flex-horizontal center">
     <h1 class="grow">Post Feed</h1>
-    <button class="button-suggested-action" @onclick="NavigateToCreatePost">+ Create Post</button>
+    <a href="/create-post" class="button-suggested-action">+ Create Post</a>
 </div>
 
-@if (Posts == null || !Posts.Any())
-{
-    <div class="no-posts-message">
-        <i class="fas fa-ban" style="font-size: 2rem; color: #ff6347;"></i>
-        <p>No posts yet. Follow users to see their posts!</p>
-    </div>
-}
-else
-{
-    @foreach (var post in Posts)
-    {
-        <PostShared Post=post CurrentUser=CurrentUser />
-    }
-}
+<FeedShared Posts=Posts />
 
 @code {
     [CascadingParameter]
-    private Session? Session {get; set;}
+    private Session? Session { get; set; }
 
     private bool isLoading = true;
     private int authRetryCount = 0;
     private const int MAX_AUTH_RETRIES = 3;
-    private string newCommentText = string.Empty;
     private List<Data.Post> Posts { get; set; } = new();
-
-    private Dictionary<Guid, string> commentTexts = new();
-    private Dictionary<Guid, List<Data.Post>> CommentsByPostId = new();
-    private Dictionary<Guid, bool> likedPosts = new();
-    private Dictionary<Guid, bool> sharedPosts = new();
 
     private bool ShowToast { get; set; } = false;
     private string ToastMessage { get; set; } = "";
-    private User? CurrentUser { get; set; }
-    private bool IsAdmin => CurrentUser?.IsAdmin ?? false;
-    private bool showDeleteConfirmation = false;
-    private Guid? postIdToDelete = null;
-    private Guid? editingPostId = null;
-    private string editSubject = string.Empty;
-    private string editDescription = string.Empty;
 
     //show toast notifications
     private async Task ShowToastMessage(string message)
@@ -88,51 +62,39 @@ else
 
         if (!string.IsNullOrEmpty(email))
         {
-            CurrentUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-            Session!.CurrentUser = CurrentUser;
+            Session!.CurrentUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
         }
+
+        var userId = Session!.CurrentUser!.UserId;
 
         Posts = await _dbContext.Posts
         .Where(p => p.ParentPostId == null)
+        // this query sucks and is massively un-performant but
+        // I don't have time to do better.
+        .Where(
+            // the post is by the current user
+            p => p.UserId == userId
+            // ...or the post is by someone they follow
+            || _dbContext.Follow
+            .Where(f => f.UserId == userId)
+            .Where(f => f.FollowedUserId == p.UserId)
+            .Any()
+            // ...or the post was shared by someone they follow
+            || _dbContext.Share
+            .Where(s => s.PostId == p.PostId)
+            .Where(s => _dbContext.Follow
+                .Where(f => f.UserId == userId)
+                .Where(f => f.FollowedUserId == s.UserId)
+                .Any()
+            ).Any()
+        )
         .Include(p => p.User)
         .Include(p => p.Images)
         .Include(p => p.Likes)
         .Include(p => p.Shares)
         .OrderByDescending(p => p.Timestamp)
         .ToListAsync();
-
-        var allComments = await _dbContext.Posts
-        .Where(p => p.ParentPostId != null)
-        .Include(p => p.User)
-        .ToListAsync();
-
-        CommentsByPostId = allComments
-        .GroupBy(c => c.ParentPostId.Value)
-        .ToDictionary(g => g.Key, g => g.ToList());
-
-
-        foreach (var post in Posts)
-        {
-            if (!commentTexts.ContainsKey(post.PostId))
-            {
-                commentTexts[post.PostId] = string.Empty;
-            }
-        }
     }
-
-    //navigates to create post page
-    private void NavigateToCreatePost()
-    {
-        NavigationManager.NavigateTo("/create-post");
-    }
-
-
-    //hides the in line editing if edit cancelled
-    private void CancelEdit()
-    {
-        editingPostId = null;
-    }
-
 
     //authenticate user
     private async Task CheckAuthenticationStateAsync()
@@ -177,68 +139,4 @@ else
         NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
     }
 
-    //adds a comment to a post
-    private async Task AddComment(Guid parentPostId)
-    {
-        if (!commentTexts.ContainsKey(parentPostId) || string.IsNullOrWhiteSpace(commentTexts[parentPostId]))
-        {
-            await ShowToastMessage("Comment Cannot Be empty.");
-            return;
-        }
-        try
-        {
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var userClaims = authState.User;
-
-            if (!userClaims.Identity?.IsAuthenticated ?? true)
-            {
-                RedirectToLogin();
-                return;
-            }
-
-            var email = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-            if (string.IsNullOrEmpty(email))
-            {
-                await ShowToastMessage("Invalid user email.");
-                RedirectToLogin();
-                return;
-            }
-
-            var currentUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-            if (currentUser == null)
-            {
-                await ShowToastMessage("User not found.");
-                RedirectToLogin();
-                return;
-            }
-
-            var parentPost = await _dbContext.Posts.FindAsync(parentPostId);
-            if (parentPost == null)
-            {
-                await ShowToastMessage("Parent post not found.");
-                return;
-            }
-
-
-            var comment = new Data.Post
-            {
-                User = currentUser,
-                UserId = currentUser.UserId,
-                Subject = "Re: " + parentPost.Subject,
-                Description = commentTexts[parentPostId],
-                Timestamp = DateTime.UtcNow,
-                ParentPostId = parentPostId,
-            };
-
-            _dbContext.Posts.Add(comment);
-            await _dbContext.SaveChangesAsync();
-            await OnInitializedAsync();
-            commentTexts[parentPostId] = string.Empty;
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error adding comment.");
-            await ShowToastMessage("Failed to post comment.");
-        }
-    }
 }

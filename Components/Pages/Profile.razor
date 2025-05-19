@@ -26,106 +26,16 @@ else if (currentUser == null)
 }
 else
 {
-    <div class="subtle-container">
-        <div class="flex-horizontal">
-            <div class="profile-avatar">
-                @if (currentUser.ProfileImage != null)
-                {
-                    <img src="data:image/jpeg;base64,@Convert.ToBase64String(currentUser.ProfileImage)" alt="Profile" />
-                }
-                else
-                {
-                    <img src="https://via.placeholder.com/150" alt="Profile" />
-                }
-            </div>
-            <div class="flex-vertical">
-                <h1>@currentUser.DisplayName</h1>
-                @if (!string.IsNullOrEmpty(currentUser.Location))
-                {
-                    <p>📍 @currentUser.Location</p>
-                }
-                <p>@currentUser.Bio</p>
-                <div class="flex-horizontal">
-                    <button class="button-optional-action" @onclick="ShowEditProfile">Edit Profile</button>
-                    <button class="button-suggested-action">Share Profile</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="flex-horizontal center pad-top" style="gap: 30px;">
-            <div class="flex-vertical no-gap">
-                <strong class="center-text">248</strong>
-                <div class="center-text">Posts</div>
-            </div>
-            <div class="flex-vertical no-gap">
-                <strong class="center-text">582</strong>
-                <div class="center-text">Following</div>
-            </div>
-            <div class="flex-vertical no-gap">
-                <strong class="center-text">1.4K</strong>
-                <div class="center-text">Followers</div>
-            </div>
-        </div>
-    </div>
-
-    @if (showEditProfile)
-    {
-        <div class="modal-overlay" @onclick="HideEditProfile">
-            <div class="modal subtle-container" @onclick:stopPropagation="true">
-                <div class="flex-horizontal">
-                    <h1>Edit Profile</h1>
-                    <div class="flex-horizontal grow flex-end">
-                        <button class="button-suggested-action" style="font-size: 24px;" @onclick="HideEditProfile">×</button>
-                    </div>
-                </div>
-                <label for="fileupload">Profile Picture</label>
-                <InputFile id="fileupload" OnChange="HandleImageUpload" class="file-input" accept=".jpg,.jpeg,.png" />
-                @if (imagePreviewUrl != null)
-                {
-                    <img src="@imagePreviewUrl" alt="Preview" class="image-preview" />
-                }
-                else if (currentUser.ProfileImage != null)
-                {
-                    <img src="data:image/jpeg;base64,@Convert.ToBase64String(currentUser.ProfileImage)" alt="Current"
-                        class="image-preview" />
-                }
-
-                <label for="name">Name</label>
-                <input id="name" type="text" class="input-single-line fill-width" @bind="editName" />
-
-                <label for="location">Location</label>
-                <input id="location" type="text" class="input-single-line fill-width" @bind="editLocation"
-                    placeholder="Enter your location" />
-
-                <label for="bio">Bio</label>
-                <textarea id="bio" class="input-multi-line fill-width" @bind="editBio"></textarea>
-
-                <label for="email">Email</label>
-                <input id="email" type="email" class="input-single-line fill-width" @bind="editEmail" />
-
-                <div class="flex-horizontal pad-top">
-                    <button class="button-optional-action" @onclick="HideEditProfile">Cancel</button>
-                    <button class="button-suggested-action" @onclick="SaveProfile">Save Changes</button>
-                </div>
-            </div>
-        </div>
-    }
+    <ProfileShared User=currentUser CanEdit=true />
 }
 
 @code {
     private Data.User? currentUser;
     private bool showEditProfile = false;
-    private string? imagePreviewUrl;
-    private byte[]? newProfileImage;
     private bool isLoading = true;
     private int authRetryCount = 0;
     private const int MAX_AUTH_RETRIES = 3;
 
-    // Edit form fields
-    private string editName = string.Empty;
-    private string editEmail = string.Empty;
-    private string editLocation = string.Empty;
-    private string editBio = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -207,65 +117,4 @@ else
         NavigationManager.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(NavigationManager.Uri)}", forceLoad: true);
     }
 
-    private void ShowEditProfile()
-    {
-        editName = currentUser?.DisplayName ?? string.Empty;
-        editEmail = currentUser?.Email ?? string.Empty;
-        editLocation = currentUser?.Location ?? string.Empty;
-        editBio = currentUser?.Bio ?? string.Empty;
-        imagePreviewUrl = null;
-        newProfileImage = null;
-        showEditProfile = true;
-    }
-
-    private void HideEditProfile()
-    {
-        showEditProfile = false;
-    }
-
-    private async Task HandleImageUpload(InputFileChangeEventArgs e)
-    {
-        try
-        {
-            var file = e.File;
-            if (file != null)
-            {
-                using var stream = new MemoryStream();
-                await file.OpenReadStream(maxAllowedSize: 1024 * 1024).CopyToAsync(stream); // Max 1MB
-                newProfileImage = stream.ToArray();
-
-                imagePreviewUrl = $"data:image/jpeg;base64,{Convert.ToBase64String(newProfileImage)}";
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error uploading image");
-        }
-    }
-
-    private async Task SaveProfile()
-    {
-        try
-        {
-            if (currentUser != null)
-            {
-                currentUser.DisplayName = editName;
-                currentUser.Email = editEmail;
-                currentUser.Location = editLocation;
-                currentUser.Bio = editBio;
-                if (newProfileImage != null)
-                {
-                    currentUser.ProfileImage = newProfileImage;
-                }
-
-                await DbContext.SaveChangesAsync();
-                Logger.LogInformation("Profile updated successfully");
-                showEditProfile = false;
-            }
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error updating profile");
-        }
-    }
 }

@@ -20,13 +20,14 @@
             }
         </div>
         <div class="flex-vertical">
-            <span>@Post.User?.DisplayName</span>
             @if (IsPreview)
             {
+                <span>@Post.User!.DisplayName</span>
                 <span class="font-small">@Post.Timestamp.ToString("MM/dd/yyyy HH:mm")</span>
             }
             else
             {
+                <a href="/user/@Post.UserId">@Post.User!.DisplayName</a>
                 <a href="/post/@Post.PostId" class="font-small">@Post.Timestamp.ToString("MM/dd/yyyy HH:mm")</a>
             }
         </div>

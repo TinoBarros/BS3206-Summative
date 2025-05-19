@@ -13,6 +13,7 @@ namespace Data
         public DbSet<Post> Posts { get; set; }
         public DbSet<Like> Likes { get; set; }
         public DbSet<Share> Share { get; set; }
+        public DbSet<Follow> Follow { get; set; }
         public DbSet<Location> Locations { get; set; }
         public DbSet<LocationInteraction> LocationInteractions { get; set; }
 
@@ -64,7 +65,7 @@ namespace Data
             followBuilder
                 .HasOne(f => f.FollowedUser)
                 .WithMany(u => u.Followers)
-                .HasForeignKey(u => u.UserId)
+                .HasForeignKey(u => u.FollowedUserId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }
