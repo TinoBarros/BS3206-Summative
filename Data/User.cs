@@ -15,7 +15,8 @@ namespace Data {
         public byte[]? ProfileImage { get; set; }
         public string Location { get; set; } = "";
         public string Bio { get; set; } = "";
-
+        public ICollection<Like> Likes { get; set; } = [];
+        public ICollection<Share> Shares { get; set; } = [];
         public ICollection<Follow> Follows { get; set; } = [];
         public ICollection<Follow> Followers { get; set; } = [];
     }

@@ -26,20 +26,22 @@
     <button class="button-optional-action fill-width" @onclick="NavigateBack">← Back</button>
     <h1 class="center-text">Create Post</h1>
 
-    <label for="subject">Subject</label>
-    <input id="subject" type="text" class="input-single-line fill-width" @bind="Subject" maxlength="100" />
+    @if(previewPost != null) {
+        <label for="subject">Subject</label>
+        <input id="subject" type="text" class="input-single-line fill-width" @bind="previewPost!.Subject" maxlength="100" />
 
-    <label for="description">Description</label>
-    <textarea id="description" class="input-multi-line" maxlength="800" rows="6" @bind="Description" @oninput="UpdateCharacterCount"></textarea>
-    <div class="flex-horizontal flex-end">
-        <span class="font-small">@Description.Length / 800</span>
-    </div>
+        <label for="description">Description</label>
+        <textarea id="description" class="input-multi-line" maxlength="800" rows="6" @bind="previewPost!.Description" @oninput="UpdateCharacterCount"></textarea>
+        <div class="flex-horizontal flex-end">
+            <span class="font-small">@previewPost?.Description.Length / 800</span>
+        </div>
 
-    <InputFile OnChange="HandleImageUpload" multiple accept="image/*" />
-    <div class="flex-vertical pad-top">
-        <button class="button-optional-action" style="width: auto;" @onclick="TogglePreview">Preview</button>
-    </div>
-    <button class="button-suggested-action" style="width: auto;" @onclick="SubmitPost">Share</button>
+        <InputFile OnChange="HandleImageUpload" multiple accept="image/*" />
+        <div class="flex-vertical pad-top">
+            <button class="button-optional-action" style="width: auto;" @onclick="TogglePreview">Preview</button>
+        </div>
+        <button class="button-suggested-action" style="width: auto;" @onclick="SubmitPost">Share</button>
+    }
 </div>
 
 
@@ -48,54 +50,15 @@
     {
     <div class="modal-backdrop" @onclick="ClosePreview">
         <div class="modal-content" @onclick:stopPropagation>
-            <div class="post-header">
-                @if (loggedInUser?.ProfileImage != null)
-                    {
-                    var profileImgBase64 = $"data:image/png;base64,{Convert.ToBase64String(loggedInUser.ProfileImage)}";
-                    <img src="@profileImgBase64" alt="User profile" class="avatar-image" />
-                    }
-                else
-                {
-                    <div class="avatar-placeholder"></div>
-                }
-                <div>
-                    <strong>@loggedInUser?.DisplayName</strong><br />
-                    <span class="timestamp">@DateTime.Now.ToString("MM/dd/yyyy HH:mm")</span>
-                </div>
-            </div>
-
-            <div class="post-content">
-                <div class="subject"><strong>@Subject</strong></div>
-                <div class="body">@Description</div>
-            </div>
-            @if (tempUploadedImages.Any())
-            {
-                <div class="image-preview-gallery">
-                @foreach (var img in tempUploadedImages)
-                {
-                    var base64 = Convert.ToBase64String(img.ImageData);
-                    var imageUrl = $"data:{img.ContentType};base64,{base64}";
-                    <img src="@imageUrl" alt="Preview image" class="preview-image" />
-                }
-            </div>
-            }
-
-            <div class="post-actions">
-                <span>👍 0</span>
-                <span>💬 0</span>
-            </div>
-
-            <button class="button-suggested-action" @onclick="ClosePreview">Close</button>
+            <PostShared CurrentUser=loggedInUser Post=previewPost IsPreview=true />
         </div>
     </div>
 }
 
 @code {
     private Data.User? loggedInUser;
+    private Data.Post? previewPost;
     private bool ShowPreview { get; set; } = false;
-    private string Subject { get; set; } = "";
-    private string Description { get; set; } = "";
-    private List<PostImage> tempUploadedImages = new();
     private bool ShowToast { get; set; } = false;
     private string ToastMessage { get; set; } = "";
     private string ToastType { get; set; } = "success";
@@ -105,7 +68,9 @@
     //keeps track of character count in subject
     private void UpdateCharacterCount(ChangeEventArgs e)
     {
-        Description = e.Value?.ToString() ?? "";
+        if (previewPost != null) {
+            previewPost.Description = e.Value?.ToString() ?? "";
+        }
     }
 
     //toggles whether preview is selected
@@ -121,7 +86,7 @@
     }
 
     //closes preview window
-     private void ClosePreview()
+    private void ClosePreview()
     {
         ShowPreview = false;
     }
@@ -140,36 +105,25 @@
     //creates post in the database
     private async Task SubmitPost()
     {
-         if (string.IsNullOrWhiteSpace(Subject) || string.IsNullOrWhiteSpace(Description))
-            {
-                await ShowToastMessage("Subject and description cannot be empty.", "error");
-                return;
-            }
-
         if (loggedInUser == null)
         {
             await ShowToastMessage("You must be logged in to create a post.", "error");
             return;
         }
 
-        var newPost = new Data.Post
+        if (string.IsNullOrWhiteSpace(previewPost?.Subject) || string.IsNullOrWhiteSpace(previewPost?.Description))
         {
-            User = loggedInUser,
-            UserId = loggedInUser.UserId,
-            Subject = Subject,
-            Description = Description,
-            Timestamp = DateTime.UtcNow,
-            Comments = 0,
-            Images = new List<PostImage>(tempUploadedImages)
-        };
+            await ShowToastMessage("Subject and description cannot be empty.", "error");
+            return;
+        }
 
-        _dbContext.Posts.Add(newPost);
+        _dbContext.Posts.Add(previewPost);
         await _dbContext.SaveChangesAsync();
 
-
-        Subject = "";
-        Description = "";
-        tempUploadedImages.Clear();
+        previewPost = new Post {
+            UserId = loggedInUser.UserId,
+            User = loggedInUser,
+        };
         ShowPreview = false;
         await ShowToastMessage("Post successfully published!");
     }
@@ -194,13 +148,12 @@
                 continue;
             }
 
-
             try
             {
                 using var stream = new MemoryStream();
                 await file.OpenReadStream(MaxFileSize).CopyToAsync(stream);
 
-                tempUploadedImages.Add(new PostImage
+                previewPost?.Images.Add(new PostImage
                 {
                     ImageData = stream.ToArray(),
                     ContentType = file.ContentType
@@ -237,7 +190,6 @@
 
             Logger.LogInformation("Loading profile for user with email: {Email}", userEmail);
             loggedInUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
-
             if (loggedInUser == null)
             {
                 Logger.LogWarning("No user found with email: {Email}", userEmail);
@@ -245,6 +197,10 @@
             else
             {
                 Logger.LogInformation("Successfully loaded user profile for: {Name}", loggedInUser.DisplayName);
+                previewPost = new Post {
+                    UserId = loggedInUser.UserId,
+                    User = loggedInUser,
+                };
             }
         }
         catch (Exception ex)

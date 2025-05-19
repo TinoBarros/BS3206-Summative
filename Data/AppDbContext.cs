@@ -34,7 +34,7 @@ namespace Data
             var likeBuilder = modelBuilder.Entity<Like>();
             likeBuilder
                 .HasOne(l => l.User)
-                .WithMany()
+                .WithMany(u => u.Likes)
                 .HasForeignKey(l => l.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             likeBuilder
@@ -46,7 +46,7 @@ namespace Data
             var shareBuilder = modelBuilder.Entity<Share>();
             shareBuilder
                 .HasOne(s => s.User)
-                .WithMany()
+                .WithMany(u => u.Shares)
                 .HasForeignKey(s => s.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             shareBuilder
