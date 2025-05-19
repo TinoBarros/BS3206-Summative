@@ -5,11 +5,11 @@ namespace Data
     public class LocationInteraction
     {
         [Key]
-        public int Id { get; set; }
+        public Guid Id { get; set; }
         [Required]
-        public int UserId { get; set; }
+        public Guid UserId { get; set; }
         [Required]
-        public int LocationId { get; set; }
+        public Guid LocationId { get; set; }
         public bool IsLiked { get; set; }
         public bool IsDisliked { get; set; }
     }

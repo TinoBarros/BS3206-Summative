@@ -59,7 +59,7 @@
                     <div class="avatar-placeholder"></div>
                 }
                 <div>
-                    <strong>@loggedInUser?.Name</strong><br />
+                    <strong>@loggedInUser?.DisplayName</strong><br />
                     <span class="timestamp">@DateTime.Now.ToString("MM/dd/yyyy HH:mm")</span>
                 </div>
             </div>
@@ -155,7 +155,7 @@
         var newPost = new Data.Post
         {
             User = loggedInUser,
-            UserId = loggedInUser.Id,
+            UserId = loggedInUser.UserId,
             Subject = Subject,
             Description = Description,
             Timestamp = DateTime.UtcNow,
@@ -176,43 +176,43 @@
 
     //creates PostImage
     private async Task HandleImageUpload(InputFileChangeEventArgs e)
-{
-    foreach (var file in e.GetMultipleFiles())
     {
-
-        if (file.Size > MaxFileSize)
+        foreach (var file in e.GetMultipleFiles())
         {
-            await ShowToastMessage($"File '{file.Name}' exceeds the maximum size of {MaxFileSize / (1024 * 1024)}MB.", "error");
-            continue;
-        }
 
-
-        var extension = Path.GetExtension(file.Name).ToLowerInvariant();
-        if (!AllowedExtensions.Contains(extension))
-        {
-            await ShowToastMessage($"File type '{extension}' is not allowed. Allowed types are: {string.Join(", ", AllowedExtensions)}.", "error");
-            continue;
-        }
-
-
-        try
-        {
-            using var stream = new MemoryStream();
-            await file.OpenReadStream(MaxFileSize).CopyToAsync(stream);
-
-            tempUploadedImages.Add(new PostImage
+            if (file.Size > MaxFileSize)
             {
-                ImageData = stream.ToArray(),
-                ContentType = file.ContentType
-            });
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to process file upload.");
-            await ShowToastMessage($"An error occurred while uploading '{file.Name}'.", "error");
+                await ShowToastMessage($"File '{file.Name}' exceeds the maximum size of {MaxFileSize / (1024 * 1024)}MB.", "error");
+                continue;
+            }
+
+
+            var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+            if (!AllowedExtensions.Contains(extension))
+            {
+                await ShowToastMessage($"File type '{extension}' is not allowed. Allowed types are: {string.Join(", ", AllowedExtensions)}.", "error");
+                continue;
+            }
+
+
+            try
+            {
+                using var stream = new MemoryStream();
+                await file.OpenReadStream(MaxFileSize).CopyToAsync(stream);
+
+                tempUploadedImages.Add(new PostImage
+                {
+                    ImageData = stream.ToArray(),
+                    ContentType = file.ContentType
+                });
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to process file upload.");
+                await ShowToastMessage($"An error occurred while uploading '{file.Name}'.", "error");
+            }
         }
     }
-}
 
 
     //loads user data
@@ -244,7 +244,7 @@
             }
             else
             {
-                Logger.LogInformation("Successfully loaded user profile for: {Name}", loggedInUser.Name);
+                Logger.LogInformation("Successfully loaded user profile for: {Name}", loggedInUser.DisplayName);
             }
         }
         catch (Exception ex)

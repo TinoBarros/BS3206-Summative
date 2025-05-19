@@ -37,16 +37,12 @@
             </div>
             <input @bind="newLocation.Name" placeholder="Location Name" class="input-single-line fill-width" />
             <textarea @bind="newLocation.Description" placeholder="Location Description"
-                class="input-multi-line fill-width"></textarea>
-            <div class="flex-vertical pad">
-                <input @bind="newLocation.ImageUrl" placeholder="Image URL" class="input-single-line" />
-                <span class="font-small">OR</span>
-                <InputFile OnChange="HandleFileSelected" />
-                @if (selectedFile != null)
-                {
-                    <button @onclick="ClearSelectedFile" class="button-destructive-action">Clear</button>
-                }
-            </div>
+            class="input-multi-line fill-width"></textarea>
+            <InputFile OnChange="HandleFileSelected" />
+            @if (selectedFile != null)
+            {
+                <button @onclick="ClearSelectedFile" class="button-destructive-action">Clear</button>
+            }
             <input @bind="newLocation.MapUrl" placeholder="Google Maps URL (optional)"
                 class="input-single-line fill-width" />
             <button @onclick="AddLocation" class="button-suggested-action">Add Location</button>
@@ -80,7 +76,11 @@
         {
             <article class="subtle-container">
                 <div class="location-image">
-                    <img src="@location.ImageUrl" alt="@location.Name" />
+                    @if (location.ImageData != null){
+                        var base64 = Convert.ToBase64String(location.ImageData);
+                        var imageUrl = $"data:{location.ContentType};base64,{base64}";
+                        <img src="@imageUrl" alt="Preview image" class="preview-image" />
+                    }
                 </div>
                 <div class="flex-horizontal">
                     <h1>@location.Name</h1>
@@ -99,10 +99,10 @@
                 <p>@location.Description</p>
                 <div class="flex-horizontal">
                     <div class="round-button-container">
-                        <RoundButton Active=@(userLikes.ContainsKey(location.Id) && userLikes[location.Id])
+                        <RoundButton Active=@(userLikes.ContainsKey(location.LocationId) && userLikes[location.LocationId])
                             Count=@location.ThumbsUp IconPath="/icon/bx-like.svg" ActiveIconPath="/icon/bxs-like.svg"
                             OnClick=@(() => ThumbsUp(location))></RoundButton>
-                        <RoundButton Active=@(userDislikes.ContainsKey(location.Id) && userDislikes[location.Id])
+                        <RoundButton Active=@(userDislikes.ContainsKey(location.LocationId) && userDislikes[location.LocationId])
                             Count=@location.ThumbsDown IconPath="/icon/bx-dislike.svg"
                             ActiveIconPath="/icon/bxs-dislike.svg" OnClick=@(() => ThumbsDown(location))></RoundButton>
                     </div>
@@ -125,8 +125,8 @@
     private const long MaxFileSize = 5 * 1024 * 1024; // 5MB - can be changed if needed
     private readonly string[] AllowedExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
     private DotNetObjectReference<Locations>? objRef;
-    private Dictionary<int, bool> userLikes = new();
-    private Dictionary<int, bool> userDislikes = new();
+    private Dictionary<Guid, bool> userLikes = new();
+    private Dictionary<Guid, bool> userDislikes = new();
     private Data.User? currentUser;
     private bool showAddModal = false;
 
@@ -177,7 +177,7 @@
         if (currentUser != null)
         {
             var interactions = await DbContext.LocationInteractions
-            .Where(li => li.UserId == currentUser.Id)
+            .Where(li => li.UserId == currentUser.UserId)
             .ToListAsync();
 
             foreach (var interaction in interactions)
@@ -232,21 +232,12 @@
 
         if (selectedFile != null)
         {
-            var uploadsFolder = Path.Combine(Environment.WebRootPath, "uploads");
-            if (!Directory.Exists(uploadsFolder))
-            {
-                Directory.CreateDirectory(uploadsFolder);
-            }
-
-            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(selectedFile.Name)}";
-            var filePath = Path.Combine(uploadsFolder, fileName);
-
-            using (var stream = File.Create(filePath))
-            {
+            using (var stream = new MemoryStream()) {
                 await selectedFile.OpenReadStream(MaxFileSize).CopyToAsync(stream);
-            }
 
-            newLocation.ImageUrl = $"/uploads/{fileName}";
+                newLocation.ImageData = stream.ToArray();
+                newLocation.ContentType = selectedFile.ContentType;
+            };
         }
 
         DbContext.Locations.Add(newLocation);
@@ -263,15 +254,6 @@
         {
             return;
         }
-        // Delete the image file if it's an uploaded file
-        if (!string.IsNullOrEmpty(location.ImageUrl) && location.ImageUrl.StartsWith("/uploads/"))
-        {
-            var filePath = Path.Combine(Environment.WebRootPath, location.ImageUrl.TrimStart('/'));
-            if (File.Exists(filePath))
-            {
-                File.Delete(filePath);
-            }
-        }
         DbContext.Locations.Remove(location);
         await DbContext.SaveChangesAsync();
         await LoadLocations();
@@ -283,14 +265,14 @@
         if (currentUser == null) return;
 
         var interaction = await DbContext.LocationInteractions
-        .FirstOrDefaultAsync(li => li.UserId == currentUser.Id && li.LocationId == location.Id);
+        .FirstOrDefaultAsync(li => li.UserId == currentUser.UserId && li.LocationId == location.LocationId);
 
         if (interaction == null)
         {
             interaction = new LocationInteraction
             {
-                UserId = currentUser.Id,
-                LocationId = location.Id,
+                UserId = currentUser.UserId,
+                LocationId = location.LocationId,
                 IsLiked = true,
                 IsDisliked = false
             };
@@ -319,8 +301,8 @@
         }
 
         await DbContext.SaveChangesAsync();
-        userLikes[location.Id] = interaction.IsLiked;
-        userDislikes[location.Id] = interaction.IsDisliked;
+        userLikes[location.LocationId] = interaction.IsLiked;
+        userDislikes[location.LocationId] = interaction.IsDisliked;
         StateHasChanged();
     }
 
@@ -330,14 +312,14 @@
         if (currentUser == null) return;
 
         var interaction = await DbContext.LocationInteractions
-        .FirstOrDefaultAsync(li => li.UserId == currentUser.Id && li.LocationId == location.Id);
+        .FirstOrDefaultAsync(li => li.UserId == currentUser.UserId && li.LocationId == location.LocationId);
 
         if (interaction == null)
         {
             interaction = new LocationInteraction
             {
-                UserId = currentUser.Id,
-                LocationId = location.Id,
+                UserId = currentUser.UserId,
+                LocationId = location.LocationId,
                 IsLiked = false,
                 IsDisliked = true
             };
@@ -366,8 +348,8 @@
         }
 
         await DbContext.SaveChangesAsync();
-        userLikes[location.Id] = interaction.IsLiked;
-        userDislikes[location.Id] = interaction.IsDisliked;
+        userLikes[location.LocationId] = interaction.IsLiked;
+        userDislikes[location.LocationId] = interaction.IsDisliked;
         StateHasChanged();
     }
 

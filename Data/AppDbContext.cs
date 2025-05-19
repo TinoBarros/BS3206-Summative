@@ -19,7 +19,8 @@ namespace Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<User>()
+            var userBuilder = modelBuilder.Entity<User>();
+            userBuilder
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
@@ -29,18 +30,41 @@ namespace Data
                 .HasForeignKey(p => p.ParentPostId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-             modelBuilder.Entity<Like>()
-            .HasOne(l => l.User)
-            .WithMany() // Assuming a User can have many Likes
-            .HasForeignKey(l => l.UserId)
-            .OnDelete(DeleteBehavior.Cascade); // Or Restrict if you don't want cascading deletes
-
-            modelBuilder.Entity<Like>()
+            var likeBuilder = modelBuilder.Entity<Like>();
+            likeBuilder
+                .HasOne(l => l.User)
+                .WithMany()
+                .HasForeignKey(l => l.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            likeBuilder
                 .HasOne(l => l.Post)
-                .WithMany(p => p.Likes) // Assuming a Post can have many Likes
+                .WithMany(p => p.Likes)
                 .HasForeignKey(l => l.PostId)
-                .OnDelete(DeleteBehavior.Cascade); // Or Restrict depending on your needs
-    
+                .OnDelete(DeleteBehavior.Cascade);
+
+            var shareBuilder = modelBuilder.Entity<Share>();
+            shareBuilder
+                .HasOne(s => s.User)
+                .WithMany()
+                .HasForeignKey(s => s.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            shareBuilder
+                .HasOne(s => s.Post)
+                .WithMany(p => p.Shares)
+                .HasForeignKey(s => s.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            var followBuilder = modelBuilder.Entity<Follow>();
+            followBuilder
+                .HasOne(f => f.User)
+                .WithMany(u => u.Follows)
+                .HasForeignKey(u => u.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            followBuilder
+                .HasOne(f => f.FollowedUser)
+                .WithMany(u => u.Followers)
+                .HasForeignKey(u => u.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

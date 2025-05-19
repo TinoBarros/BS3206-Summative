@@ -18,9 +18,9 @@ namespace Data {
         public string GenerateToken(User user) {
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
                 new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Name, user.Name)
+                new Claim(ClaimTypes.Name, user.DisplayName)
             };
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_key));

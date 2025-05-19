@@ -39,7 +39,7 @@ else
                 }
             </div>
             <div class="flex-vertical">
-                <h1>@currentUser.Name</h1>
+                <h1>@currentUser.DisplayName</h1>
                 @if (!string.IsNullOrEmpty(currentUser.Location))
                 {
                     <p>📍 @currentUser.Location</p>
@@ -193,7 +193,7 @@ else
             }
             else
             {
-                Logger.LogInformation("Successfully loaded user profile for: {Name}", currentUser.Name);
+                Logger.LogInformation("Successfully loaded user profile for: {Name}", currentUser.DisplayName);
             }
         }
         catch (Exception ex)
@@ -209,7 +209,7 @@ else
 
     private void ShowEditProfile()
     {
-        editName = currentUser?.Name ?? string.Empty;
+        editName = currentUser?.DisplayName ?? string.Empty;
         editEmail = currentUser?.Email ?? string.Empty;
         editLocation = currentUser?.Location ?? string.Empty;
         editBio = currentUser?.Bio ?? string.Empty;
@@ -249,7 +249,7 @@ else
         {
             if (currentUser != null)
             {
-                currentUser.Name = editName;
+                currentUser.DisplayName = editName;
                 currentUser.Email = editEmail;
                 currentUser.Location = editLocation;
                 currentUser.Bio = editBio;

@@ -36,45 +36,47 @@
     </div>
 }
 
-<div class="flex-vertical pad">
-    <button class="button-suggested-action fill-width" @onclick="NavigateToCreatePost">Create Post</button>
-    <h1 style="text-align: center;">Post Feed</h1>
+<div class="flex-horizontal center">
+    <h1 class="grow">Post Feed</h1>
+    <button class="button-suggested-action" @onclick="NavigateToCreatePost">+ Create Post</button>
+</div>
 
-    @if (Posts == null || !Posts.Any())
+@if (Posts == null || !Posts.Any())
+{
+    <div class="no-posts-message">
+        <i class="fas fa-ban" style="font-size: 2rem; color: #ff6347;"></i>
+        <p>No posts yet. Follow users to see their posts!</p>
+    </div>
+}
+else
+{
+    @foreach (var post in Posts)
     {
-        <div class="no-posts-message">
-            <i class="fas fa-ban" style="font-size: 2rem; color: #ff6347;"></i>
-            <p>No posts yet. Follow users to see their posts!</p>
-        </div>
-    }
-    else
-    {
-        @foreach (var post in Posts)
-        {
-            <article class="subtle-container">
-                <div class="flex-horizontal">
-                    <div class="flex-vertical center">
-                        @if (post.User?.ProfileImage != null)
-                        {
+        <article class="subtle-container">
+            <div class="flex-horizontal">
+                <div class="flex-vertical center">
+                    @if (post.User?.ProfileImage != null)
+                    {
                         var profileImgBase64 = $"data:image/png;base64,{Convert.ToBase64String(post.User.ProfileImage)}";
                         <img src="@profileImgBase64" alt="User profile" class="avatar-image" />
-                        }
-                        else
-                        {
-                            <div class="avatar-placeholder"></div>
-                        }
-                    </div>
-                    <div class="flex-vertical">
-                        <span>@post.User?.Name</span><br />
-                        <span class="timestamp">@post.Timestamp.ToString("MM/dd/yyyy HH:mm")</span>
-                    </div>
+                    }
+                    else
+                    {
+                        <div class="avatar-placeholder"></div>
+                    }
                 </div>
+                <div class="flex-vertical">
+                    <span>@post.User?.DisplayName</span><br />
+                    <span class="timestamp">@post.Timestamp.ToString("MM/dd/yyyy HH:mm")</span>
+                </div>
+            </div>
             @if (editingPostId == post.PostId)
             {
                 <div class="flex-vertical">
                     <h1>Edit Post</h1>
                     <input class="input-single-line fill-width" @bind="editSubject" maxlength="100" placeholder="Subject" />
-                    <textarea class="input-multi-line fill-width" @bind="editDescription" rows=6 maxlength="1000" placeholder="Description"></textarea>
+                    <textarea class="input-multi-line fill-width" @bind="editDescription" rows=6 maxlength="1000"
+                        placeholder="Description"></textarea>
                 </div>
                 <div class="flex-horizontal flex-end">
                     <button class="button-optional-action" @onclick="CancelEdit">Cancel</button>
@@ -87,64 +89,70 @@
                     <h1>@post.Subject</h1>
                     <p>@post.Description</p>
                 </div>
-                }
-                @if (post.Images != null && post.Images.Any())
+            }
+            @if (post.Images != null && post.Images.Any())
+            {
+                foreach (var image in post.Images)
                 {
-                    foreach (var image in post.Images)
-                    {
-                        var base64 = Convert.ToBase64String(image.ImageData);
-                        var imgSrc = $"data:{image.ContentType};base64,{base64}";
-                        <img src="@imgSrc" alt="Post image" class="post-image" @onclick="() => OpenImageViewer(imgSrc)" />
-                    }
+                    var base64 = Convert.ToBase64String(image.ImageData);
+                    var imgSrc = $"data:{image.ContentType};base64,{base64}";
+                    <img src="@imgSrc" alt="Post image" class="post-image" @onclick="() => OpenImageViewer(imgSrc)" />
                 }
+            }
 
-                <div class=round-button-container>
-                    <RoundButton IconPath="/icon/bx-like.svg" ActiveIconPath="/icon/bxs-like.svg" Count=@post.Likes.Count
-                    Active=@(likedPosts.ContainsKey(post.PostId) && likedPosts[post.PostId]) OnClick="() => OnLikeButtonClick(post)" />
-                    <button class="round-button"><div class="icon-mask" style='mask-image: url("/icon/bx-share-alt.svg");'></div>0</button> @* TODO *@
-                    <button class="round-button"><div class="icon-mask" style='mask-image: url("/icon/bx-reply.svg");'></div>@post.Comments</button>
-                </div>
-                @if (CanEditPost(post) || CanDeletePost(post))
-                {
+            <div class=round-button-container>
+                <RoundButton IconPath="/icon/bx-like.svg" ActiveIconPath="/icon/bxs-like.svg" Count=@post.Likes.Count
+                    Active=@(likedPosts.ContainsKey(post.PostId) && likedPosts[post.PostId])
+                    OnClick="() => OnLikeButtonClick(post)" />
+                <button class="round-button">
+                    <div class="icon-mask" style='mask-image: url("/icon/bx-share-alt.svg");'></div>0
+                </button> @* TODO *@
+                <button class="round-button">
+                    <div class="icon-mask" style='mask-image: url("/icon/bx-reply.svg");'></div>@post.Comments
+                </button>
+            </div>
+            @if (CanEditPost(post) || CanDeletePost(post))
+            {
                 <div class="action-buttons">
                     @if (CanEditPost(post))
                     {
-                    <button class="button-suggested-action" @onclick="() => StartEditPost(post)">✏️ Edit</button>
+                        <button class="button-suggested-action" @onclick="() => StartEditPost(post)">✏️ Edit</button>
                     }
                     @if (CanDeletePost(post))
                     {
-                    <button class="button-destructive-action" @onclick="@(() => ConfirmDelete(post.PostId))">🗑️ Delete</button>
+                        <button class="button-destructive-action" @onclick="@(() => ConfirmDelete(post.PostId))">🗑️ Delete</button>
                     }
                 </div>
-                }
+            }
 
-                <div class="flex-horizontal">
-                    <input class="input-single-line fill-width grow" @bind="commentTexts[post.PostId]" placeholder="Add a comment..." maxlength="100" />
-                    <button class="button-suggested-action shrink" @onclick="@(() => AddComment(post.PostId))">Post</button>
-                </div>
+            <div class="flex-horizontal">
+                <input class="input-single-line fill-width grow" @bind="commentTexts[post.PostId]"
+                    placeholder="Add a comment..." maxlength="100" />
+                <button class="button-suggested-action shrink" @onclick="@(() => AddComment(post.PostId))">Post</button>
+            </div>
 
-                <div class="flex-vertical">
-                    @if (CommentsByPostId.TryGetValue(post.PostId, out var comments))
-                    {
+            <div class="flex-vertical">
+                @if (CommentsByPostId.TryGetValue(post.PostId, out var comments))
+                {
                     <p>Comments</p>
                     @foreach (var comment in comments)
                     {
                         <div class="flex-horizontal">
                             <div class="flex-vertical">
-                            @if (comment.User?.ProfileImage != null)
-                            {
-                                var profileImgBase64 = $"data:image/png;base64,{Convert.ToBase64String(comment.User.ProfileImage)}";
-                                <img src="@profileImgBase64" alt="User profile" class="comment-avatar" />
-                            }
-                            else
-                            {
-                                <div class="avatar-placeholder"></div>
-                            }
+                                @if (comment.User?.ProfileImage != null)
+                                {
+                                    var profileImgBase64 = $"data:image/png;base64,{Convert.ToBase64String(comment.User.ProfileImage)}";
+                                    <img src="@profileImgBase64" alt="User profile" class="comment-avatar" />
+                                }
+                                else
+                                {
+                                    <div class="avatar-placeholder"></div>
+                                }
                             </div>
                             <div class="flex-vertical">
                                 <div class="flex-horizontal">
                                     <div class="comment-header">
-                                        <strong>@comment.User?.Name</strong><br />
+                                        <strong>@comment.User?.DisplayName</strong><br />
                                     </div>
                                     <span class="timestamp">@comment.Timestamp.ToString("MM/dd/yyyy HH:mm")</span>
                                 </div>
@@ -152,18 +160,18 @@
                             </div>
                             @if (CanDeletePost(comment))
                             {
-                            <div class="flex-horizontal flex-end grow">
-                                <button class="button-destructive-action flex-end" style="height: fit-content;" @onclick="@(() => ConfirmDelete(comment.PostId))">Delete</button>
-                            </div>
+                                <div class="flex-horizontal flex-end grow">
+                                    <button class="button-destructive-action flex-end" style="height: fit-content;"
+                                        @onclick="@(() => ConfirmDelete(comment.PostId))">Delete</button>
+                                </div>
                             }
                         </div>
-                        }
                     }
-                </div>
-            </article>
-        }
+                }
+            </div>
+        </article>
     }
-</div>
+}
 
 
 
@@ -186,19 +194,19 @@
     private bool isImageViewerOpen = false;
     private string currentImageSrc = string.Empty;
     private string newCommentText = string.Empty;
-    private List<Data.Post> Posts { get; set; } = new List<Data.Post>();
+    private List<Data.Post> Posts { get; set; } = new();
 
-    private Dictionary<int, string> commentTexts = new();
-    private Dictionary<int, List<Data.Post>> CommentsByPostId = new();
-    private Dictionary<int, bool> likedPosts = new Dictionary<int, bool>();
+    private Dictionary<Guid, string> commentTexts = new();
+    private Dictionary<Guid, List<Data.Post>> CommentsByPostId = new();
+    private Dictionary<Guid, bool> likedPosts = new();
 
     private bool ShowToast { get; set; } = false;
     private string ToastMessage { get; set; } = "";
     private User? CurrentUser { get; set; }
     private bool IsAdmin => CurrentUser?.IsAdmin ?? false;
     private bool showDeleteConfirmation = false;
-    private int postIdToDelete;
-    private int? editingPostId = null;
+    private Guid? postIdToDelete = null;
+    private Guid? editingPostId = null;
     private string editSubject = string.Empty;
     private string editDescription = string.Empty;
 
@@ -226,12 +234,12 @@
         }
 
         Posts = await _dbContext.Posts
-            .Where(p => p.ParentPostId == null)
-            .Include(p => p.User)
-            .Include(p => p.Images)
-            .Include(p => p.Likes)
-            .OrderByDescending(p => p.Timestamp)
-            .ToListAsync();
+        .Where(p => p.ParentPostId == null)
+        .Include(p => p.User)
+        .Include(p => p.Images)
+        .Include(p => p.Likes)
+        .OrderByDescending(p => p.Timestamp)
+        .ToListAsync();
 
         var allComments = await _dbContext.Posts
         .Where(p => p.ParentPostId != null)
@@ -259,18 +267,18 @@
     }
 
     //deletes post from database
-    private async Task DeletePost(int postId)
+    private async Task DeletePost(Guid postId)
     {
-    var postToDelete = await _dbContext.Posts.FindAsync(postId);
-    if (postToDelete != null)
-    {
-        _dbContext.Posts.Remove(postToDelete);
-        await _dbContext.SaveChangesAsync();
-    }
+        var postToDelete = await _dbContext.Posts.FindAsync(postId);
+        if (postToDelete != null)
+        {
+            _dbContext.Posts.Remove(postToDelete);
+            await _dbContext.SaveChangesAsync();
+        }
     }
 
     //shows confirmation screen for deletion
-    private void ConfirmDelete(int postId)
+    private void ConfirmDelete(Guid postId)
     {
         postIdToDelete = postId;
         showDeleteConfirmation = true;
@@ -279,7 +287,7 @@
     //executes the post deletion
     private async Task DeleteConfirmed()
     {
-        await DeletePost(postIdToDelete);
+        await DeletePost((Guid)postIdToDelete!);
         showDeleteConfirmation = false;
         await OnInitializedAsync();
     }
@@ -288,10 +296,10 @@
     private void CancelDelete()
     {
         showDeleteConfirmation = false;
-        postIdToDelete = 0;
+        postIdToDelete = null;
     }
     //Checks if logged-in user is allowed to delete post (either an admin or is their own post)
-      private bool CanDeletePost(Data.Post post)
+    private bool CanDeletePost(Data.Post post)
     {
         if (IsAdmin)
             return true;
@@ -316,7 +324,7 @@
     }
 
     //saves the edited post to the database
-    private async Task SaveEdit(int postId)
+    private async Task SaveEdit(Guid postId)
     {
         var post = await _dbContext.Posts.FindAsync(postId);
         if (post != null)
@@ -354,7 +362,7 @@
             else
             {
                 Logger.LogWarning("User not authenticated, attempt {RetryCount} of {MaxRetries}",
-                    authRetryCount + 1, MAX_AUTH_RETRIES);
+                authRetryCount + 1, MAX_AUTH_RETRIES);
 
                 if (authRetryCount < MAX_AUTH_RETRIES)
                 {
@@ -396,13 +404,13 @@
     }
 
     //adds a comment to a post
-    private async Task AddComment(int parentPostId)
+    private async Task AddComment(Guid parentPostId)
     {
         if (!commentTexts.ContainsKey(parentPostId) || string.IsNullOrWhiteSpace(commentTexts[parentPostId]))
-            {
-                await ShowToastMessage("Comment Cannot Be empty.");
-                return;
-            }
+        {
+            await ShowToastMessage("Comment Cannot Be empty.");
+            return;
+        }
         try
         {
             var authState = await AuthStateProvider.GetAuthenticationStateAsync();
@@ -441,7 +449,7 @@
             var comment = new Data.Post
             {
                 User = currentUser,
-                UserId = currentUser.Id,
+                UserId = currentUser.UserId,
                 Subject = "Re: " + parentPost.Subject,
                 Description = commentTexts[parentPostId],
                 Timestamp = DateTime.UtcNow,
@@ -476,7 +484,7 @@
         }
 
         var existingLike = await _dbContext.Likes
-            .FirstOrDefaultAsync(l => l.PostId == post.PostId && l.UserId == currentUser.Id);
+        .FirstOrDefaultAsync(l => l.PostId == post.PostId && l.UserId == currentUser.UserId);
 
         if (existingLike != null)
         {
@@ -485,10 +493,10 @@
         }
         else
         {
-         var like = new Data.Like
+            var like = new Data.Like
             {
                 PostId = post.PostId,
-                UserId = currentUser.Id
+                UserId = currentUser.UserId
             };
             _dbContext.Likes.Add(like);
             likedPosts[post.PostId] = true;
@@ -498,12 +506,12 @@
 
 
         var updatedPost = await _dbContext.Posts
-            .Include(p => p.Likes)
-            .FirstOrDefaultAsync(p => p.PostId == post.PostId);
+        .Include(p => p.Likes)
+        .FirstOrDefaultAsync(p => p.PostId == post.PostId);
 
         if (updatedPost != null)
         {
-         post.Likes = updatedPost.Likes;
+            post.Likes = updatedPost.Likes;
         }
     }
 }

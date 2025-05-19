@@ -4,6 +4,7 @@ using System.Text;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Components.Authorization;
+using System.Text.RegularExpressions;
 
 namespace Data {
     public class AuthService {
@@ -35,9 +36,10 @@ namespace Data {
                 }
 
                 var adminUser = new User {
-                    Name = "Admin",
+                    DisplayName = "Admin",
                     Email = adminEmail,
-                    PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(adminPassword)
+                    PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(adminPassword),
+                    IsAdmin = true,
                 };
 
                 _db.Users.Add(adminUser);
@@ -77,14 +79,14 @@ namespace Data {
             }
         }
 
-        public async Task<(bool Success, string Message)> RegisterAsync(string name, string email, string password) {
+        public async Task<(bool Success, string Message)> RegisterAsync(string displayName, string email, string password) {
             try {
                 if (await _db.Users.AnyAsync(u => u.Email == email)) {
                     return (false, "Email already registered");
                 }
 
                 var user = new User {
-                    Name = name,
+                    DisplayName = displayName,
                     Email = email,
                     PasswordHash = BCrypt.Net.BCrypt.EnhancedHashPassword(password)
                 };
@@ -99,7 +101,24 @@ namespace Data {
             }
         }
 
-        public async Task<bool> LogoutAsync() {
+        public string? CheckUsername(string username)
+        {
+            if (username.Length < 3)
+            {
+                return "Username must be at least 3 characters";
+            }
+
+            var regex = new Regex("^[a-z0-9_]+$");
+            if (!regex.IsMatch(username))
+            {
+                return "Username can only contain lowercase letters, numbers, and underscores _";
+            }
+
+            return null;
+        }
+
+        public async Task<bool> LogoutAsync()
+        {
             await _authStateProvider.UpdateAuthenticationState(null);
             return true;
         }
