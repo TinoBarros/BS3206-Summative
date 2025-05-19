@@ -10,11 +10,11 @@ namespace Data
         [Required]
         public Guid UserId { get; set; }  
         [Required]
-        public required User User { get; set; }  
+        public User? User { get; set; }  
         [Required]
         public Guid PostId { get; set; } 
         [Required]
-        public required Post Post { get; set; }   
+        public Post? Post { get; set; }   
         public DateTime SharedAt { get; set; } = DateTime.UtcNow; 
     }
 }

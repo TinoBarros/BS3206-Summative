@@ -104,9 +104,9 @@ else
                 <RoundButton IconPath="/icon/bx-like.svg" ActiveIconPath="/icon/bxs-like.svg" Count=@post.Likes.Count
                     Active=@(likedPosts.ContainsKey(post.PostId) && likedPosts[post.PostId])
                     OnClick="() => OnLikeButtonClick(post)" />
-                <button class="round-button">
-                    <div class="icon-mask" style='mask-image: url("/icon/bx-share-alt.svg");'></div>0
-                </button> @* TODO *@
+                <RoundButton IconPath="/icon/bx-share-alt.svg" ActiveIconPath="/icon/bxs-share-alt.svg" Count=@post.Shares.Count
+                    Active=@(sharedPosts.ContainsKey(post.PostId) && sharedPosts[post.PostId])
+                    OnClick="() => OnShareButtonClick(post)" />
                 <button class="round-button">
                     <div class="icon-mask" style='mask-image: url("/icon/bx-reply.svg");'></div>@post.Comments
                 </button>
@@ -199,6 +199,7 @@ else
     private Dictionary<Guid, string> commentTexts = new();
     private Dictionary<Guid, List<Data.Post>> CommentsByPostId = new();
     private Dictionary<Guid, bool> likedPosts = new();
+    private Dictionary<Guid, bool> sharedPosts = new();
 
     private bool ShowToast { get; set; } = false;
     private string ToastMessage { get; set; } = "";
@@ -512,6 +513,50 @@ else
         if (updatedPost != null)
         {
             post.Likes = updatedPost.Likes;
+        }
+    }
+
+    private async Task OnShareButtonClick(Data.Post post)
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var email = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+        var currentUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (currentUser == null)
+        {
+            RedirectToLogin();
+            return;
+        }
+
+        var existingShare = await _dbContext.Share
+        .FirstOrDefaultAsync(l => l.PostId == post.PostId && l.UserId == currentUser.UserId);
+
+        if (existingShare != null)
+        {
+            _dbContext.Share.Remove(existingShare);
+            sharedPosts[post.PostId] = false;
+        }
+        else
+        {
+            var like = new Data.Share
+            {
+                PostId = post.PostId,
+                UserId = currentUser.UserId
+            };
+            _dbContext.Share.Add(like);
+            sharedPosts[post.PostId] = true;
+        }
+
+        await _dbContext.SaveChangesAsync();
+
+
+        var updatedPost = await _dbContext.Posts
+        .Include(p => p.Shares)
+        .FirstOrDefaultAsync(p => p.PostId == post.PostId);
+
+        if (updatedPost != null)
+        {
+            post.Shares = updatedPost.Shares;
         }
     }
 }
